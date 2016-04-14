@@ -1,0 +1,3 @@
+[submodule "adafruit-oled-st7735-dk51"]
+	path = adafruit-oled-st7735-dk51
+	url = git://github.com/akinaru/adafruit-oled-st7735-dk51.git
