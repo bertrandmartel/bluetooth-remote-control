@@ -34,6 +34,8 @@
 #include "bsp.h"
 #include "ble_gap.h"
 #include "SEGGER_RTT.h"
+#include "adafruit1_8_oled_library.h"
+#include "bsp.h"
 
 #define E(x,y) x = y,
 enum BUTTON_STATE_ENUM {
@@ -308,7 +310,9 @@ static void advertising_init(void)
 
 static void full_color_handler(ble_displays_t * p_dis, uint8_t red, uint8_t green, uint8_t blue)
 {
-    SEGGER_RTT_printf(0, "\x1B[32mcolor handler\x1B[0m\n");
+    uint16_t data = ((red >> 3) << 11) + ((green >> 2) << 5) + (blue >> 3);
+    SEGGER_RTT_printf(0, "\x1B[32mset full color : %d;%d;%d to %d\x1B[0m\n", red, green, blue, data);
+    fillScreen(data);
 }
 
 static void led_write_handler(ble_displays_t * p_dis, uint8_t led_state)
@@ -721,16 +725,36 @@ static void power_manage(void)
     APP_ERROR_CHECK(err_code);
 }
 
+/**
+ * @brief Function for initializing bsp module.
+ */
+
+void bsp_configuration() {
+
+    //uint32_t err_code = NRF_SUCCESS;
+
+    NRF_CLOCK->LFCLKSRC            = (CLOCK_LFCLKSRC_SRC_Xtal << CLOCK_LFCLKSRC_SRC_Pos);
+    NRF_CLOCK->EVENTS_LFCLKSTARTED = 0;
+    NRF_CLOCK->TASKS_LFCLKSTART    = 1;
+
+    while (NRF_CLOCK->EVENTS_LFCLKSTARTED == 0) {
+        // Do nothing.
+    }
+}
 
 /**@brief Function for application main entry.
  */
 int main(void)
 {
+    bsp_configuration();
     // Initialize
     timers_init();
     gpiote_init();
     adc_init();
     buttons_init();
+    tft_setup();
+    fillScreen(ST7735_BLACK);
+
     ble_stack_init();
     scheduler_init();
     gap_params_init();

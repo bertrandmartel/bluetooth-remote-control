@@ -42,22 +42,21 @@ $(abspath $(NRF51_SDK_DIR)/components/libraries/util/app_error.c) \
 $(abspath $(NRF51_SDK_DIR)/components/libraries/util/app_error_weak.c) \
 $(abspath $(NRF51_SDK_DIR)/components/libraries/fifo/app_fifo.c) \
 $(abspath $(NRF51_SDK_DIR)/components/libraries/trace/app_trace.c) \
-$(abspath $(NRF51_SDK_DIR)/components/libraries/util/app_util_platform.c) \
 $(abspath $(NRF51_SDK_DIR)/components/libraries/fstorage/fstorage.c) \
 $(abspath $(NRF51_SDK_DIR)/components/libraries/util/nrf_assert.c) \
 $(abspath $(NRF51_SDK_DIR)/components/libraries/util/nrf_log.c) \
 $(abspath $(NRF51_SDK_DIR)/components/libraries/uart/retarget.c) \
 $(abspath $(NRF51_SDK_DIR)/components/libraries/sensorsim/sensorsim.c) \
 $(abspath $(NRF51_SDK_DIR)/components/drivers_nrf/common/nrf_drv_common.c) \
+$(abspath $(NRF51_SDK_DIR)/components/libraries/gpiote/app_gpiote.c) \
 $(abspath $(NRF51_SDK_DIR)/components/drivers_nrf/gpiote/nrf_drv_gpiote.c) \
-$(abspath $(NRF51_SDK_DIR)/components/drivers_nrf/uart/nrf_drv_uart.c) \
 $(abspath $(NRF51_SDK_DIR)/components/drivers_nrf/pstorage/pstorage.c) \
 $(abspath $(NRF51_SDK_DIR)/components/libraries/button/app_button.c) \
-$(abspath $(NRF51_SDK_DIR)/components/libraries/gpiote/app_gpiote.c) \
+$(abspath $(NRF51_SDK_DIR)/components/drivers_nrf/spi_master/nrf_drv_spi.c) \
 $(abspath $(NRF51_SDK_DIR)/components/libraries/scheduler/app_scheduler.c) \
 $(abspath $(NRF51_SDK_DIR)/components/libraries/timer/app_timer.c) \
+$(abspath $(NRF51_SDK_DIR)/components/libraries/util/app_util_platform.c) \
 $(abspath $(NRF51_SDK_DIR)/components/libraries/timer/app_timer_appsh.c) \
-$(abspath $(NRF51_SDK_DIR)/components/libraries/util/nrf_assert.c) \
 $(abspath $(NRF51_SDK_DIR)/components/drivers_nrf/delay/nrf_delay.c) \
 $(abspath $(NRF51_SDK_DIR)/examples/bsp/bsp.c) \
 $(abspath src/ble_displays.c) \
@@ -69,15 +68,22 @@ $(abspath $(NRF51_SDK_DIR)/components/toolchain/system_nrf51.c) \
 $(abspath $(NRF51_SDK_DIR)/components/softdevice/common/softdevice_handler/softdevice_handler.c) \
 $(abspath $(NRF51_SDK_DIR)/components/drivers_ext/segger_rtt/SEGGER_RTT.c) \
 $(abspath $(NRF51_SDK_DIR)/components/drivers_ext/segger_rtt/SEGGER_RTT_printf.c) \
+$(abspath adafruit-oled-st7735-dk51/src/common.c) \
+$(abspath adafruit-oled-st7735-dk51/src/adafruit1_8_oled_library.c) \
 $(abspath src/main.c)
 
 #assembly files common to all targets
 ASM_SOURCE_FILES  = $(abspath $(NRF51_SDK_DIR)/components/toolchain/gcc/gcc_startup_nrf51.s)
 
-
+INC_PATHS += -I$(abspath include)
+INC_PATHS += -I$(abspath adafruit-oled-st7735-dk51/include-lib)
+INC_PATHS += -I$(abspath adafruit-oled-st7735-dk51/include-external)
+INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/libraries/gpiote)
+INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/drivers_nrf/gpiote)
+INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/drivers_nrf/spi_master)
+INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/drivers_nrf/config)
 INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/examples/ble_peripheral/ble_app_bps/config/ble_app_bps_s130_pca10028)
 INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/examples/ble_peripheral/ble_app_bps/config)
-INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/drivers_nrf/config)
 INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/libraries/timer)
 INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/libraries/fifo)
 INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/libraries/fstorage/config)
@@ -96,7 +102,6 @@ INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/libraries/uart)
 INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/libraries/button)
 INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/libraries/fstorage)
 INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/libraries/experimental_section_vars)
-INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/drivers_nrf/gpiote)
 INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/external/segger_rtt)
 INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/examples//bsp)
 INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/toolchain/CMSIS/Include)
@@ -110,7 +115,6 @@ INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/libraries/trace)
 INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/ble/ble_services/ble_bas)
 INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/softdevice/common/softdevice_handler)
 INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/libraries/scheduler)
-INC_PATHS += -I$(abspath include)
 
 #INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/libraries/util)
 #INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/toolchain/gcc)
@@ -118,8 +122,6 @@ INC_PATHS += -I$(abspath include)
 #INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/ble/common)
 INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/ble/ble_error_log)
 INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/ble/ble_debug_assert_handler)
-
-INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/libraries/gpiote)
 #INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/libraries/timer)
 #INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/examples/bsp)
 #INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/device)
