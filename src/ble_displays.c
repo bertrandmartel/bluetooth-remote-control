@@ -53,24 +53,29 @@ static void on_write(ble_displays_t * p_dis, ble_evt_t * p_ble_evt)
 {
     ble_gatts_evt_write_t * p_evt_write = &p_ble_evt->evt.gatts_evt.params.write;
 
-   
+
     if ((p_evt_write->handle == p_dis->led_char_handles.value_handle) &&
             (p_evt_write->len == 1) &&
             (p_dis->led_write_handler != NULL))
     {
         p_dis->led_write_handler(p_dis, p_evt_write->data[0]);
     }
-    else if ((p_evt_write->handle == p_dis->display_full_color_handle.value_handle) &&
+    else if ((p_evt_write->handle == p_dis->display_full_color_handles.value_handle) &&
              (p_evt_write->len == 3) &&
              (p_dis->full_color_handler != NULL))
     {
         p_dis->full_color_handler(p_dis, p_evt_write->data[0], p_evt_write->data[1], p_evt_write->data[2]);
     }
+    else if ((p_evt_write->handle == p_dis->display_bitmap_handles.value_handle) &&
+             (p_evt_write->len > 0) &&
+             (p_dis->bitmap_handler != NULL))
+    {
+        p_dis->bitmap_handler(p_dis, p_evt_write);
+    }
 }
 
 void ble_displays_on_ble_evt(ble_displays_t * p_dis, ble_evt_t * p_ble_evt)
 {
-
     if (p_dis == NULL || p_ble_evt == NULL)
     {
         return;
@@ -87,6 +92,7 @@ void ble_displays_on_ble_evt(ble_displays_t * p_dis, ble_evt_t * p_ble_evt)
         break;
 
     case BLE_GATTS_EVT_WRITE:
+        SEGGER_RTT_printf(0, "\x1B[32min BLE_GATTS_EVT_WRITE\x1B[0m\n");
         on_write(p_dis, p_ble_evt);
         break;
 
@@ -148,7 +154,12 @@ static uint32_t led_char_add(ble_displays_t * p_dis, const ble_displays_init_t *
  *
  */
 
-static uint32_t full_color_char_add(ble_displays_t * p_dis, const ble_displays_init_t * p_dis_init, uint16_t uuid, ble_gatts_char_handles_t *characteristic_handler)
+static uint32_t display_char_add(ble_displays_t * p_dis,
+                                 const ble_displays_init_t * p_dis_init,
+                                 uint16_t uuid,
+                                 ble_gatts_char_handles_t *characteristic_handler,
+                                 uint16_t init_len,
+                                 uint16_t max_len)
 {
     ble_gatts_char_md_t char_md;
     ble_gatts_attr_t    attr_char_value;
@@ -157,6 +168,7 @@ static uint32_t full_color_char_add(ble_displays_t * p_dis, const ble_displays_i
 
     memset(&char_md, 0, sizeof(char_md));
 
+    //char_md.char_ext_props.reliable_wr = 1;
     char_md.char_props.read   = 1;
     char_md.char_props.write  = 1;
     char_md.p_char_user_desc  = NULL;
@@ -181,9 +193,9 @@ static uint32_t full_color_char_add(ble_displays_t * p_dis, const ble_displays_i
 
     attr_char_value.p_uuid       = &ble_uuid;
     attr_char_value.p_attr_md    = &attr_md;
-    attr_char_value.init_len     = sizeof(uint8_t);
+    attr_char_value.init_len     = init_len;
     attr_char_value.init_offs    = 0;
-    attr_char_value.max_len      = sizeof(uint32_t);
+    attr_char_value.max_len      = max_len;
     attr_char_value.p_value      = NULL;
 
     return sd_ble_gatts_characteristic_add(p_dis->service_handle, &char_md,
@@ -191,10 +203,12 @@ static uint32_t full_color_char_add(ble_displays_t * p_dis, const ble_displays_i
                                            characteristic_handler);
 }
 
+
+
 /**@brief Function for adding the Button characteristic.
  *
  */
-static uint32_t button_char_add(ble_displays_t * p_dis, const ble_displays_init_t * p_dis_init, uint16_t uuid, ble_gatts_char_handles_t *characteristic_handler)
+static uint32_t adc_char_add(ble_displays_t * p_dis, const ble_displays_init_t * p_dis_init, uint16_t uuid, ble_gatts_char_handles_t *characteristic_handler)
 {
     ble_gatts_char_md_t char_md;
     ble_gatts_attr_md_t cccd_md;
@@ -253,6 +267,7 @@ uint32_t ble_displays_init(ble_displays_t * p_dis, const ble_displays_init_t * p
     p_dis->conn_handle       = BLE_CONN_HANDLE_INVALID;
     p_dis->led_write_handler = p_dis_init->led_write_handler;
     p_dis->full_color_handler = p_dis_init->full_color_handler;
+    p_dis->bitmap_handler = p_dis_init->bitmap_handler;
 
     // Add service
     ble_uuid128_t base_uuid = {DISPLAYS_UUID_BASE};
@@ -271,22 +286,22 @@ uint32_t ble_displays_init(ble_displays_t * p_dis, const ble_displays_init_t * p
         return err_code;
     }
 
-    err_code = button_char_add(p_dis, p_dis_init, DISPLAYS_UUID_BUTTON1, &p_dis->button1_handles);
+    err_code = adc_char_add(p_dis, p_dis_init, DISPLAYS_UUID_BUTTON1, &p_dis->button1_handles);
     if (err_code != NRF_SUCCESS)
     {
         return err_code;
     }
-    err_code = button_char_add(p_dis, p_dis_init, DISPLAYS_UUID_BUTTON2, &p_dis->button2_handles);
+    err_code = adc_char_add(p_dis, p_dis_init, DISPLAYS_UUID_BUTTON2, &p_dis->button2_handles);
     if (err_code != NRF_SUCCESS)
     {
         return err_code;
     }
-    err_code = button_char_add(p_dis, p_dis_init, DISPLAYS_UUID_BUTTON3, &p_dis->button3_handles);
+    err_code = adc_char_add(p_dis, p_dis_init, DISPLAYS_UUID_BUTTON3, &p_dis->button3_handles);
     if (err_code != NRF_SUCCESS)
     {
         return err_code;
     }
-    err_code = button_char_add(p_dis, p_dis_init, DISPLAYS_UUID_BUTTON4, &p_dis->button4_handles);
+    err_code = adc_char_add(p_dis, p_dis_init, DISPLAYS_UUID_BUTTON4, &p_dis->button4_handles);
     if (err_code != NRF_SUCCESS)
     {
         return err_code;
@@ -296,12 +311,17 @@ uint32_t ble_displays_init(ble_displays_t * p_dis, const ble_displays_init_t * p
     {
         return err_code;
     }
-    err_code = full_color_char_add(p_dis, p_dis_init, DISPLAYS_UUID_FULL_COLOR, &p_dis->display_full_color_handle);
+    err_code = display_char_add(p_dis, p_dis_init, DISPLAYS_UUID_FULL_COLOR, &p_dis->display_full_color_handles, sizeof(uint8_t), sizeof(uint32_t));
     if (err_code != NRF_SUCCESS)
     {
         return err_code;
     }
-    err_code = button_char_add(p_dis, p_dis_init, DISPLAYS_UUID_DPAD, &p_dis->dpad_handles);
+    err_code = adc_char_add(p_dis, p_dis_init, DISPLAYS_UUID_DPAD, &p_dis->dpad_handles);
+    if (err_code != NRF_SUCCESS)
+    {
+        return err_code;
+    }
+    err_code = display_char_add(p_dis, p_dis_init, DISPLAYS_UUID_BITMAP, &p_dis->display_bitmap_handles, sizeof(uint8_t), 18 );
     if (err_code != NRF_SUCCESS)
     {
         return err_code;

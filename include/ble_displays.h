@@ -26,35 +26,40 @@
 #define DISPLAYS_UUID_LED 0x1701
 
 #define DISPLAYS_UUID_FULL_COLOR 0x1801
+#define DISPLAYS_UUID_BITMAP     0x1802
 
 // Forward declaration of the ble_displays_t type.
 typedef struct ble_displays_s ble_displays_t;
 
 typedef void (*ble_displays_led_write_handler_t) (ble_displays_t * p_dis, uint8_t new_state);
 typedef void (*ble_displays_full_color_write_handler_t) (ble_displays_t * p_dis, uint8_t red, uint8_t green, uint8_t blue);
+typedef void (*ble_displays_bitmap_write_handler_t) (ble_displays_t * p_dis, ble_gatts_evt_write_t * p_evt_write);
 
 typedef struct
 {
-	ble_displays_led_write_handler_t        led_write_handler;                    /**< Event handler to be called when LED characteristic is written. */
-	ble_displays_full_color_write_handler_t full_color_handler;
+	ble_displays_led_write_handler_t           led_write_handler;                    /**< Event handler to be called when LED characteristic is written. */
+	ble_displays_full_color_write_handler_t    full_color_handler;
+	ble_displays_bitmap_write_handler_t        bitmap_handler;
 } ble_displays_init_t;
 
 
 /**@brief LED Button Service structure. This contains various status information for the service. */
 typedef struct ble_displays_s
 {
-	uint16_t                    service_handle;
-	ble_gatts_char_handles_t    display_full_color_handle;
-	ble_gatts_char_handles_t    dpad_handles;
-	ble_gatts_char_handles_t    led_char_handles;
-	ble_gatts_char_handles_t    button1_handles;
-	ble_gatts_char_handles_t    button2_handles;
-	ble_gatts_char_handles_t    button3_handles;
-	ble_gatts_char_handles_t    button4_handles;
-	uint8_t                     uuid_type;
-	uint16_t                    conn_handle;
-	ble_displays_led_write_handler_t led_write_handler;
-	ble_displays_full_color_write_handler_t full_color_handler;
+	uint16_t                                 service_handle;
+	ble_gatts_char_handles_t                 display_full_color_handles;
+	ble_gatts_char_handles_t                 display_bitmap_handles;
+	ble_gatts_char_handles_t                 dpad_handles;
+	ble_gatts_char_handles_t                 led_char_handles;
+	ble_gatts_char_handles_t                 button1_handles;
+	ble_gatts_char_handles_t                 button2_handles;
+	ble_gatts_char_handles_t                 button3_handles;
+	ble_gatts_char_handles_t                 button4_handles;
+	uint8_t                                  uuid_type;
+	uint16_t                                 conn_handle;
+	ble_displays_led_write_handler_t         led_write_handler;
+	ble_displays_full_color_write_handler_t  full_color_handler;
+	ble_displays_bitmap_write_handler_t      bitmap_handler;
 } ble_displays_t;
 
 /**@brief Function for initializing the LED Button Service.
