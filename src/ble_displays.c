@@ -53,6 +53,7 @@ static void on_write(ble_displays_t * p_dis, ble_evt_t * p_ble_evt)
 {
     ble_gatts_evt_write_t * p_evt_write = &p_ble_evt->evt.gatts_evt.params.write;
 
+    SEGGER_RTT_printf(0, "\x1B[32mon_write\x1B[0m\n");
 
     if ((p_evt_write->handle == p_dis->led_char_handles.value_handle) &&
             (p_evt_write->len == 1) &&
@@ -71,6 +72,12 @@ static void on_write(ble_displays_t * p_dis, ble_evt_t * p_ble_evt)
              (p_dis->bitmap_handler != NULL))
     {
         p_dis->bitmap_handler(p_dis, p_evt_write);
+    }
+    else if ((p_evt_write->handle == p_dis->transmit_status_handles.value_handle) &&
+             (p_evt_write->len > 0) &&
+             (p_dis->transmit_status_handler != NULL))
+    {
+        p_dis->transmit_status_handler(p_dis, p_evt_write->data[0]);
     }
 }
 
@@ -92,7 +99,6 @@ void ble_displays_on_ble_evt(ble_displays_t * p_dis, ble_evt_t * p_ble_evt)
         break;
 
     case BLE_GATTS_EVT_WRITE:
-        SEGGER_RTT_printf(0, "\x1B[32min BLE_GATTS_EVT_WRITE\x1B[0m\n");
         on_write(p_dis, p_ble_evt);
         break;
 
@@ -102,11 +108,63 @@ void ble_displays_on_ble_evt(ble_displays_t * p_dis, ble_evt_t * p_ble_evt)
     }
 }
 
-
-/**@brief Function for adding the LED characteristic.
- *
+/**
+ * @brief Function for adding the LED characteristic.
  */
+static uint32_t transmit_status_char_add(ble_displays_t * p_dis, const ble_displays_init_t * p_dis_init, uint16_t uuid, ble_gatts_char_handles_t *characteristic_handler)
+{
+    ble_gatts_char_md_t char_md;
+    ble_gatts_attr_t    attr_char_value;
+    ble_uuid_t          ble_uuid;
+    ble_gatts_attr_md_t attr_md;
+    ble_gatts_attr_md_t cccd_md;
 
+    memset(&cccd_md, 0, sizeof(cccd_md));
+
+    BLE_GAP_CONN_SEC_MODE_SET_OPEN(&cccd_md.read_perm);
+    BLE_GAP_CONN_SEC_MODE_SET_OPEN(&cccd_md.write_perm);
+    cccd_md.vloc = BLE_GATTS_VLOC_STACK;
+
+    memset(&char_md, 0, sizeof(char_md));
+
+    char_md.char_props.read   = 1;
+    char_md.char_props.write  = 1;
+    char_md.char_props.notify = 1;
+    char_md.p_char_user_desc  = NULL;
+    char_md.p_char_pf         = NULL;
+    char_md.p_user_desc_md    = NULL;
+    char_md.p_cccd_md         = &cccd_md;
+    char_md.p_sccd_md         = NULL;
+
+    ble_uuid.type = p_dis->uuid_type;
+    ble_uuid.uuid = uuid;
+
+    memset(&attr_md, 0, sizeof(attr_md));
+
+    BLE_GAP_CONN_SEC_MODE_SET_OPEN(&attr_md.read_perm);
+    BLE_GAP_CONN_SEC_MODE_SET_OPEN(&attr_md.write_perm);
+    attr_md.vloc       = BLE_GATTS_VLOC_STACK;
+    attr_md.rd_auth    = 0;
+    attr_md.wr_auth    = 0;
+    attr_md.vlen       = 0;
+
+    memset(&attr_char_value, 0, sizeof(attr_char_value));
+
+    attr_char_value.p_uuid       = &ble_uuid;
+    attr_char_value.p_attr_md    = &attr_md;
+    attr_char_value.init_len     = sizeof(uint8_t);
+    attr_char_value.init_offs    = 0;
+    attr_char_value.max_len      = sizeof(uint8_t);
+    attr_char_value.p_value      = NULL;
+
+    return sd_ble_gatts_characteristic_add(p_dis->service_handle, &char_md,
+                                           &attr_char_value,
+                                           characteristic_handler);
+}
+
+/**
+ * @brief Function for adding the LED characteristic.
+ */
 static uint32_t led_char_add(ble_displays_t * p_dis, const ble_displays_init_t * p_dis_init, uint16_t uuid, ble_gatts_char_handles_t *characteristic_handler)
 {
     ble_gatts_char_md_t char_md;
@@ -264,10 +322,11 @@ uint32_t ble_displays_init(ble_displays_t * p_dis, const ble_displays_init_t * p
     ble_uuid_t ble_uuid;
 
     // Initialize service structure
-    p_dis->conn_handle       = BLE_CONN_HANDLE_INVALID;
-    p_dis->led_write_handler = p_dis_init->led_write_handler;
-    p_dis->full_color_handler = p_dis_init->full_color_handler;
-    p_dis->bitmap_handler = p_dis_init->bitmap_handler;
+    p_dis->conn_handle             = BLE_CONN_HANDLE_INVALID;
+    p_dis->led_write_handler       = p_dis_init->led_write_handler;
+    p_dis->full_color_handler      = p_dis_init->full_color_handler;
+    p_dis->bitmap_handler          = p_dis_init->bitmap_handler;
+    p_dis->transmit_status_handler = p_dis_init->transmit_status_handler;
 
     // Add service
     ble_uuid128_t base_uuid = {DISPLAYS_UUID_BASE};
@@ -326,6 +385,11 @@ uint32_t ble_displays_init(ble_displays_t * p_dis, const ble_displays_init_t * p
     {
         return err_code;
     }
+    err_code = transmit_status_char_add(p_dis, p_dis_init, DISPLAYS_UUID_TRANSMIT_STATUS, &p_dis->transmit_status_handles );
+    if (err_code != NRF_SUCCESS)
+    {
+        return err_code;
+    }
     return NRF_SUCCESS;
 }
 
@@ -338,6 +402,20 @@ uint32_t ble_displays_on_button_change(ble_displays_t * p_dis, uint8_t button_st
     params.type = BLE_GATT_HVX_NOTIFICATION;
     params.handle = characteristic_handler->value_handle;
     params.p_data = &button_state;
+    params.p_len = &len;
+
+    return sd_ble_gatts_hvx(p_dis->conn_handle, &params);
+}
+
+uint32_t ble_displays_on_transmit_status_change(ble_displays_t * p_dis, uint8_t transmit_status, ble_gatts_char_handles_t *characteristic_handler)
+{
+    ble_gatts_hvx_params_t params;
+    uint16_t len = sizeof(transmit_status);
+
+    memset(&params, 0, sizeof(params));
+    params.type = BLE_GATT_HVX_NOTIFICATION;
+    params.handle = characteristic_handler->value_handle;
+    params.p_data = &transmit_status;
     params.p_len = &len;
 
     return sd_ble_gatts_hvx(p_dis->conn_handle, &params);

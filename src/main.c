@@ -47,6 +47,16 @@ static const char *BUTTON_STATE_STRING_ENUM[] = {
 #include "button_state.h"
 };
 
+#define E(x,y) x = y,
+enum TRANSMIT_STATUS_ENUM {
+#include "transmit_status.h"
+};
+
+#define E(x,y) #x,
+static const char *TRANSMIT_STATUS_STRING_ENUM[] = {
+#include "transmit_status.h"
+};
+
 #define IS_SRVC_CHANGED_CHARACT_PRESENT 0                                           /**< Include or not the service_changed characteristic. if not enabled, the server's database cannot be changed for the lifetime of the device*/
 
 #define BUTTON_S0         BSP_BUTTON_0                                /**< Button used to wake up the application. */
@@ -64,8 +74,8 @@ static const char *BUTTON_STATE_STRING_ENUM[] = {
 
 #define APP_TIMER_PRESCALER             0    /**< Value of the RTC1 PRESCALER register. */
 
-#define MIN_CONN_INTERVAL               MSEC_TO_UNITS(10, UNIT_1_25_MS)            /**< Minimum acceptable connection interval (0.5 seconds). */
-#define MAX_CONN_INTERVAL               MSEC_TO_UNITS(200, UNIT_1_25_MS)            /**< Maximum acceptable connection interval (1 second). */
+#define MIN_CONN_INTERVAL               MSEC_TO_UNITS(30, UNIT_1_25_MS)            /**< Minimum acceptable connection interval (0.5 seconds). */
+#define MAX_CONN_INTERVAL               MSEC_TO_UNITS(30, UNIT_1_25_MS)            /**< Maximum acceptable connection interval (1 second). */
 #define SLAVE_LATENCY                   0                                           /**< Slave latency. */
 #define CONN_SUP_TIMEOUT                MSEC_TO_UNITS(4000, UNIT_10_MS)             /**< Connection supervisory timeout (4 seconds). */
 #define FIRST_CONN_PARAMS_UPDATE_DELAY  APP_TIMER_TICKS(20000, APP_TIMER_PRESCALER) /**< Time from initiating event (connect or start of notification) to first time sd_ble_gap_conn_param_update is called (15 seconds). */
@@ -97,13 +107,18 @@ APP_TIMER_DEF(m_adc_sampling_timer_id);
 APP_TIMER_DEF(m_dpad_timer_id);
 
 static volatile uint8_t button_state = BUTTON_NONE;
+static volatile uint8_t transmit_state = TRANSMIT_NONE;
+
+static bool transmit_init = false;
+
 static volatile bool button_state_change = false;
 static volatile uint16_t bitmap_length = 0;
+static volatile uint8_t expecting_length = 0;
 
 // Persistent storage system event handler
 void pstorage_sys_event_handler (uint32_t p_evt);
 
-//static uint16_t *imageLogo;
+static uint16_t *imageLogo;
 static volatile uint16_t image_index = 0;
 
 /**@brief Function for error handling, which is called when an error has occurred.
@@ -319,9 +334,92 @@ static void full_color_handler(ble_displays_t * p_dis, uint8_t red, uint8_t gree
     fillScreen(data);
 }
 
+static void transmit_status_handler(ble_displays_t * p_dis, uint8_t transmit_status) {
+    SEGGER_RTT_printf(0, "\x1B[32mset transmit status to : %s\x1B[0m\n", TRANSMIT_STATUS_STRING_ENUM[transmit_status]);
+    transmit_state = transmit_status;
+}
+
+static void dispatch_transmit_status(uint8_t transmit_status) {
+
+    uint16_t err_code = ble_displays_on_transmit_status_change(&m_dis, transmit_status, &m_dis.transmit_status_handles);
+    if (err_code != NRF_SUCCESS &&
+            err_code != BLE_ERROR_INVALID_CONN_HANDLE &&
+            err_code != NRF_ERROR_INVALID_STATE)
+    {
+        APP_ERROR_CHECK(err_code);
+    }
+}
+
 static void bitmap_handler(ble_displays_t * p_dis, ble_gatts_evt_write_t * p_evt_write) {
 
-    SEGGER_RTT_printf(0, "\x1B[32min bitmap_handler\x1B[0m\n");
+    SEGGER_RTT_printf(0, "\x1B[32mbitmap handler\x1B[0m\n");
+
+    if (transmit_state == TRANSMITTING) {
+
+        if (!transmit_init) {
+            if (p_evt_write->len == 2) {
+                transmit_init = true;
+                bitmap_length = (p_evt_write->data[0] << 8) + p_evt_write->data[1];
+                free(imageLogo);
+                imageLogo = malloc(sizeof(uint16_t) * bitmap_length);
+                image_index = 0;
+                expecting_length = 127;
+                SEGGER_RTT_printf(0, "\x1B[32mreceive total length : %d\x1B[0m\n", bitmap_length);
+            }
+            else {
+                SEGGER_RTT_printf(0, "\x1B[32mError expecting data of size 2 (bitmap length)\x1B[0m\n");
+                dispatch_transmit_status(TRANSMIT_ERROR);
+            }
+        }
+        else {
+            if (expecting_length == 0) {
+                SEGGER_RTT_printf(0, "\x1B[32mreinitializing expecting length to 128\x1B[0m\n");
+                expecting_length = 128;
+            }
+            SEGGER_RTT_printf(0, "\x1B[32madding values, image_index : %d\x1B[0m\n", image_index);
+            for (uint16_t i = 0; i < p_evt_write->len; i += 2) {
+                imageLogo[image_index++] = (p_evt_write->data[i] << 8) + p_evt_write->data[i + 1];
+            }
+            expecting_length--;
+            if (expecting_length == 0) {
+                SEGGER_RTT_printf(0, "\x1B[32mReceived 128 frames.transmitting OK\x1B[0m\n");
+                transmit_state = TRANSMIT_OK;
+                //send TRANSMIT_OK
+                dispatch_transmit_status(TRANSMIT_OK);
+
+                if (image_index == (bitmap_length / 2)) {
+                    SEGGER_RTT_printf(0, "\x1B[32mReceived ALL frames.\x1B[0m\n");
+                    transmit_state = TRANSMIT_COMPLETE;
+                    //send TRANSMIT_COMPLETE
+                    dispatch_transmit_status(TRANSMIT_COMPLETE);
+                }
+
+            }
+        }
+    }
+    /*
+    count++;
+    SEGGER_RTT_printf(0, "\x1B[32min bitmap_handler : %d | length : %d | data : %d;%d;%d;%d;%d;%d;%d;%d;%d;%d;%d;%d;%d;%d;%d;%d;%d;%d\x1B[0m\n", count, p_evt_write->len,
+                      p_evt_write->data[0],
+                      p_evt_write->data[1],
+                      p_evt_write->data[2],
+                      p_evt_write->data[3],
+                      p_evt_write->data[4],
+                      p_evt_write->data[5],
+                      p_evt_write->data[6],
+                      p_evt_write->data[7],
+                      p_evt_write->data[8],
+                      p_evt_write->data[9],
+                      p_evt_write->data[10],
+                      p_evt_write->data[11],
+                      p_evt_write->data[12],
+                      p_evt_write->data[13],
+                      p_evt_write->data[14],
+                      p_evt_write->data[15],
+                      p_evt_write->data[16],
+                      p_evt_write->data[17]);
+                      */
+
     /*
     if (p_evt_write->len == 2) {
         bitmap_length = (p_evt_write->data[0] << 8) + p_evt_write->data[1];
@@ -370,9 +468,10 @@ static void services_init(void)
     uint32_t err_code;
     ble_displays_init_t init;
 
-    init.led_write_handler = led_write_handler;
-    init.full_color_handler = full_color_handler;
-    init.bitmap_handler = bitmap_handler;
+    init.led_write_handler       = led_write_handler;
+    init.full_color_handler      = full_color_handler;
+    init.bitmap_handler          = bitmap_handler;
+    init.transmit_status_handler = transmit_status_handler;
 
     err_code = ble_displays_init(&m_dis, &init);
     APP_ERROR_CHECK(err_code);
