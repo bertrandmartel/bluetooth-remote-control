@@ -115,11 +115,20 @@ static volatile bool button_state_change = false;
 static volatile uint16_t bitmap_length = 0;
 static volatile uint8_t expecting_length = 0;
 
-// Persistent storage system event handler
-void pstorage_sys_event_handler (uint32_t p_evt);
+static const uint16_t MAX_SIZE_ARRAY = 10584;
 
-static uint16_t *imageLogo;
-static volatile uint16_t image_index = 0;
+static uint16_t bitmap_offset = 0;
+
+pstorage_handle_t       pstorage_handle;
+
+static uint8_t *image_part = 0;
+
+static uint8_t block_offset = 0;
+
+static volatile uint32_t image_index = 0;
+static volatile uint16_t frame_offset = 0;
+static volatile uint16_t bitmap_stop_iteration = 0;
+static volatile uint16_t bitmap_count_iteration = 0;
 
 /**@brief Function for error handling, which is called when an error has occurred.
  *
@@ -350,6 +359,24 @@ static void dispatch_transmit_status(uint8_t transmit_status) {
     }
 }
 
+static uint32_t store_data_pstorage() {
+
+    uint32_t retval;
+
+    pstorage_handle_t block_handle;
+
+    retval = pstorage_block_identifier_get(&pstorage_handle, block_offset, &block_handle);
+
+    if (retval == NRF_SUCCESS) {
+        pstorage_store(&block_handle, image_part, frame_offset, 0);
+        block_offset++;
+    }
+    else {
+        SEGGER_RTT_printf(0, "\x1B[32mpstorage_block_identifier_get FAILURE\x1B[0m\n");
+    }
+    return retval;
+}
+
 static void bitmap_handler(ble_displays_t * p_dis, ble_gatts_evt_write_t * p_evt_write) {
 
     SEGGER_RTT_printf(0, "\x1B[32mbitmap handler\x1B[0m\n");
@@ -358,10 +385,54 @@ static void bitmap_handler(ble_displays_t * p_dis, ble_gatts_evt_write_t * p_evt
 
         if (!transmit_init) {
             if (p_evt_write->len == 2) {
+
                 transmit_init = true;
                 bitmap_length = (p_evt_write->data[0] << 8) + p_evt_write->data[1];
-                free(imageLogo);
-                imageLogo = malloc(sizeof(uint16_t) * bitmap_length);
+                block_offset = 0;
+                bitmap_offset = 0;
+                bitmap_count_iteration = 0;
+
+                free(image_part);
+                image_part = NULL;
+                image_part = (uint8_t*)malloc(sizeof(uint8_t) * 1024);
+                bitmap_stop_iteration = (bitmap_length / 18);
+
+                /*
+                uint16_t parts = bitmap_length / MAX_SIZE_ARRAY;
+                uint16_t remain = bitmap_length % MAX_SIZE_ARRAY;
+
+                SEGGER_RTT_printf(0, "\x1B[32mparts : %d; remain %d;\x1B[0m\n", parts, remain);
+
+                image_part = 0;
+
+                if (remain > 0)
+                    parts++;
+                SEGGER_RTT_printf(0, "\x1B[32m1\x1B[0m\n");
+                if (parts >= 4) {
+                    free(image_logo_part4);
+                    image_logo_part4 = NULL;
+                    image_logo_part4 = (uint16_t*)malloc(sizeof(uint16_t) * MAX_SIZE_ARRAY);
+                }
+                SEGGER_RTT_printf(0, "\x1B[32m2\x1B[0m\n");
+                if (parts >= 3) {
+                    free(image_logo_part3);
+                    image_logo_part3 = NULL;
+                    image_logo_part3 = (uint16_t*)malloc(sizeof(uint16_t) * MAX_SIZE_ARRAY);
+                }
+                SEGGER_RTT_printf(0, "\x1B[32m3\x1B[0m\n");
+                if (parts >= 2) {
+                    free(image_logo_part2);
+                    image_logo_part2 = NULL;
+                    image_logo_part2 = (uint16_t*)malloc(sizeof(uint16_t) * MAX_SIZE_ARRAY);
+                }
+                SEGGER_RTT_printf(0, "\x1B[32m4\x1B[0m\n");
+                if (parts >= 1) {
+                    free(image_logo_part1);
+                    image_logo_part1 = NULL;
+                    image_logo_part1 = (uint16_t*)malloc(sizeof(uint16_t) * MAX_SIZE_ARRAY);
+                }
+                */
+
                 image_index = 0;
                 expecting_length = 127;
                 SEGGER_RTT_printf(0, "\x1B[32mreceive total length : %d\x1B[0m\n", bitmap_length);
@@ -372,16 +443,103 @@ static void bitmap_handler(ble_displays_t * p_dis, ble_gatts_evt_write_t * p_evt
             }
         }
         else {
+
             if (expecting_length == 0) {
                 SEGGER_RTT_printf(0, "\x1B[32mreinitializing expecting length to 128\x1B[0m\n");
                 expecting_length = 128;
             }
-            SEGGER_RTT_printf(0, "\x1B[32madding values, image_index : %d\x1B[0m\n", image_index);
-            for (uint16_t i = 0; i < p_evt_write->len; i += 2) {
-                imageLogo[image_index++] = (p_evt_write->data[i] << 8) + p_evt_write->data[i + 1];
+
+            SEGGER_RTT_printf(0, "\x1B[32madding values, image_index : %d; expecting_length : %d; length : %d\x1B[0m\n", image_index, expecting_length, p_evt_write->len);
+
+            for (uint16_t i = 0; i < p_evt_write->len; i++) {
+
+                if (frame_offset == 1024) {
+
+                    uint32_t retval = store_data_pstorage();
+
+                    if (retval == NRF_SUCCESS)
+                    {
+                        SEGGER_RTT_printf(0, "\x1B[32mpstorage_store SUCCESS\x1B[0m\n");
+                        // Store successfully requested. Wait for operation result.
+                    }
+                    else
+                    {
+                        SEGGER_RTT_printf(0, "\x1B[32mpstorage_store FAILURE\x1B[0m\n");
+                        // Failed to request store, take corrective action.
+                    }
+
+                    frame_offset = 0;
+                }
+                image_part[frame_offset++] = p_evt_write->data[i];
             }
+
+            SEGGER_RTT_printf(0, "\x1B[32mcount : %d , stop : %d\x1B[0m\n", bitmap_count_iteration, bitmap_stop_iteration);
+
+            if (bitmap_count_iteration == bitmap_stop_iteration) {
+
+                if (frame_offset != 0) {
+                    //store last frames in pstorage
+                    uint32_t retval = store_data_pstorage();
+
+                    if (retval == NRF_SUCCESS)
+                    {
+                        SEGGER_RTT_printf(0, "\x1B[32mpstorage_store SUCCESS\x1B[0m\n");
+                        SEGGER_RTT_printf(0, "\x1B[32mFINISHED !!!\x1B[0m\n");
+                        // Store successfully requested. Wait for operation result.
+                        draw_bitmap_st7735_from_pstorage(0, ST7735_TFTHEIGHT_18, ST7735_TFTWIDTH, ST7735_TFTHEIGHT_18, pstorage_handle);
+                    }
+                    else
+                    {
+                        SEGGER_RTT_printf(0, "\x1B[32mpstorage_store FAILURE\x1B[0m\n");
+                        // Failed to request store, take corrective action.
+                    }
+
+                    frame_offset = 0;
+                }
+            }
+            bitmap_count_iteration++;
+
+            image_index += p_evt_write->len;
+
+            /*
+            for (i = 0; i < p_evt_write->len; i += 2) {
+
+                SEGGER_RTT_printf(0, "\x1B[32msetting value index : %d\x1B[0m\n", image_index);
+
+                if (image_index == MAX_SIZE_ARRAY) {
+                    image_part = 0;
+                }
+                switch (image_part) {
+                case 0:
+                    SEGGER_RTT_printf(0, "\x1B[32mimage_logo_part1\x1B[0m\n");
+                    *(image_logo_part1 + image_index) = 0;
+                    break;
+                case 1:
+                    SEGGER_RTT_printf(0, "\x1B[32mimage_logo_part2\x1B[0m\n");
+                    *(image_logo_part2 + image_index) = 0;
+                    break;
+                case 2:
+                    SEGGER_RTT_printf(0, "\x1B[32mimage_logo_part3\x1B[0m\n");
+                    *(image_logo_part3 + image_index) = 0;
+                    break;
+                case 3:
+                    SEGGER_RTT_printf(0, "\x1B[32mimage_logo_part4\x1B[0m\n");
+                    *(image_logo_part4 + image_index) = 0;
+                    break;
+                }
+                //imageLogo[image_index++] = (p_evt_write->data[i] << 8) + p_evt_write->data[i + 1];
+
+                SEGGER_RTT_printf(0, "\x1B[32msetting value index1 : %d\x1B[0m\n", image_index);
+                image_index++;
+                //imageLogo[image_index++] = 0;
+            }
+            */
+
             expecting_length--;
+            SEGGER_RTT_printf(0, "\x1B[32mexpecting length : %d\x1B[0m\n", expecting_length);
+
             if (expecting_length == 0) {
+
                 SEGGER_RTT_printf(0, "\x1B[32mReceived 128 frames.transmitting OK\x1B[0m\n");
                 transmit_state = TRANSMIT_OK;
                 //send TRANSMIT_OK
@@ -477,7 +635,6 @@ static void services_init(void)
     APP_ERROR_CHECK(err_code);
 }
 
-
 /**@brief Function for initializing security parameters.
  */
 static void sec_params_init(void)
@@ -490,7 +647,6 @@ static void sec_params_init(void)
     m_sec_params.min_key_size = SEC_PARAM_MIN_KEY_SIZE;
     m_sec_params.max_key_size = SEC_PARAM_MAX_KEY_SIZE;
 }
-
 
 /**@brief Function for handling the Connection Parameters Module.
  *
@@ -513,7 +669,6 @@ static void on_conn_params_evt(ble_conn_params_evt_t * p_evt)
     }
 }
 
-
 /**@brief Function for handling a Connection Parameters error.
  *
  * @param[in]   nrf_error   Error code containing information about what went wrong.
@@ -522,7 +677,6 @@ static void conn_params_error_handler(uint32_t nrf_error)
 {
     APP_ERROR_HANDLER(nrf_error);
 }
-
 
 /**@brief Function for initializing the Connection Parameters module.
  */
@@ -546,7 +700,6 @@ static void conn_params_init(void)
     APP_ERROR_CHECK(err_code);
 }
 
-
 /**@brief Function for starting timers.
 */
 static void timers_start(void)
@@ -559,7 +712,6 @@ static void timers_start(void)
     err_code = app_timer_start(m_dpad_timer_id, BUTTON_DETECTION_DELAY, NULL);
     APP_ERROR_CHECK(err_code);
 }
-
 
 /**@brief Function for starting advertising.
  */
@@ -668,7 +820,6 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
     }
 }
 
-
 /**@brief Function for dispatching a BLE stack event to all modules with a BLE stack event handler.
  *
  * @details This function is called from the scheduler in the main loop after a BLE stack
@@ -683,7 +834,6 @@ static void ble_evt_dispatch(ble_evt_t * p_ble_evt)
     ble_displays_on_ble_evt(&m_dis, p_ble_evt);
 }
 
-
 /**@brief Function for dispatching a system event to interested modules.
  *
  * @details This function is called from the System event interrupt handler after a system
@@ -691,12 +841,10 @@ static void ble_evt_dispatch(ble_evt_t * p_ble_evt)
  *
  * @param[in]   sys_evt   System stack event.
  */
-#if 0
 static void sys_evt_dispatch(uint32_t sys_evt)
 {
     pstorage_sys_event_handler(sys_evt);
 }
-#endif
 
 void ble_stack_init(void)
 {
@@ -714,6 +862,9 @@ void ble_stack_init(void)
     APP_ERROR_CHECK(err_code);
 
     err_code = softdevice_ble_evt_handler_set(ble_evt_dispatch);
+    APP_ERROR_CHECK(err_code);
+
+    err_code = softdevice_sys_evt_handler_set(sys_evt_dispatch);
     APP_ERROR_CHECK(err_code);
 }
 
@@ -867,6 +1018,80 @@ void bsp_configuration() {
     }
 }
 
+static void pstorage_cb_handler(pstorage_handle_t  * handle,
+                                uint8_t              op_code,
+                                uint32_t             result,
+                                uint8_t            * p_data,
+                                uint32_t             data_len)
+{
+    switch (op_code)
+    {
+    case PSTORAGE_LOAD_OP_CODE:
+        if (result == NRF_SUCCESS)
+        {
+            // Store operation successful.
+            SEGGER_RTT_printf(0, "\x1B[32mPSTORAGE_LOAD_OP_CODE SUCCESS\x1B[0m\n");
+        }
+        else
+        {
+            // Store operation failed.
+            SEGGER_RTT_printf(0, "\x1B[32mPSTORAGE_LOAD_OP_CODE FAILURE\x1B[0m\n");
+        }
+        // Source memory can now be reused or freed.
+        break;
+    case PSTORAGE_UPDATE_OP_CODE:
+        if (result == NRF_SUCCESS)
+        {
+            // Update operation successful.
+            SEGGER_RTT_printf(0, "\x1B[32mPSTORAGE_UPDATE_OP_CODE SUCCESS\x1B[0m\n");
+        }
+        else
+        {
+            // Update operation failed.
+            SEGGER_RTT_printf(0, "\x1B[32mPSTORAGE_UPDATE_OP_CODE FAILURE\x1B[0m\n");
+        }
+        break;
+    case PSTORAGE_CLEAR_OP_CODE:
+        if (result == NRF_SUCCESS)
+        {
+            // Clear operation successful.
+            SEGGER_RTT_printf(0, "\x1B[32mPSTORAGE_CLEAR_OP_CODE SUCCESS\x1B[0m\n");
+        }
+        else
+        {
+            // Clear operation failed.
+            SEGGER_RTT_printf(0, "\x1B[32mPSTORAGE_CLEAR_OP_CODE FAILURE\x1B[0m\n");
+        }
+        break;
+    }
+}
+
+uint32_t pstorage_initialize() {
+
+    uint32_t retval;
+    pstorage_module_param_t param;
+
+    retval = pstorage_init();
+
+    if (retval == NRF_SUCCESS)
+    {
+        SEGGER_RTT_printf(0, "\x1B[32m1\x1B[0m\n");
+        //param.block_size  = 2304;
+        //param.block_count = 18;
+        param.block_size  = 1024;
+        param.block_count = 40;
+        param.cb          = pstorage_cb_handler;
+
+        retval = pstorage_register(&param, &pstorage_handle);
+
+        if ( retval == NRF_SUCCESS) {
+
+            retval = pstorage_clear(&pstorage_handle, 40 * 1024);
+        }
+    }
+    return retval;
+}
+
 /**@brief Function for application main entry.
  */
 int main(void)
@@ -891,6 +1116,16 @@ int main(void)
     leds_init();
     // Start execution
     timers_start();
+
+    uint32_t pstorage_init = pstorage_initialize();
+
+    if (pstorage_init == NRF_SUCCESS) {
+        SEGGER_RTT_printf(0, "\x1B[32mPSTORAGE INIT SUCCESS\x1B[0m\n");
+    }
+    else {
+        SEGGER_RTT_printf(0, "\x1B[32mPSTORAGE INIT FAILURE\x1B[0m\n");
+    }
+
     advertising_start();
 
     // Enter main loop
