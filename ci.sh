@@ -16,4 +16,4 @@ git clone https://gist.github.com/25a566178766c7d0a7e04a18b341a732.git
 cp ./25a566178766c7d0a7e04a18b341a732/* $NRF51_SDK_DIR/components/drivers_ext/segger_rtt/
 echo $NRF51_SDK_DIR
 echo $PATH
-make
+cd firmware && make

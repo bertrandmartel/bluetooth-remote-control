@@ -68,8 +68,8 @@ $(abspath $(NRF51_SDK_DIR)/components/toolchain/system_nrf51.c) \
 $(abspath $(NRF51_SDK_DIR)/components/softdevice/common/softdevice_handler/softdevice_handler.c) \
 $(abspath $(NRF51_SDK_DIR)/components/drivers_ext/segger_rtt/SEGGER_RTT.c) \
 $(abspath $(NRF51_SDK_DIR)/components/drivers_ext/segger_rtt/SEGGER_RTT_printf.c) \
-$(abspath adafruit-oled-st7735-dk51/src/common.c) \
-$(abspath adafruit-oled-st7735-dk51/src/adafruit1_8_oled_library.c) \
+$(abspath adafruit-oled-st7735/src/common.c) \
+$(abspath adafruit-oled-st7735/src/adafruit1_8_oled_library.c) \
 $(abspath fastlz/fastlz.c) \
 $(abspath src/main.c)
 
@@ -78,7 +78,7 @@ ASM_SOURCE_FILES  = $(abspath $(NRF51_SDK_DIR)/components/toolchain/gcc/gcc_star
 
 INC_PATHS += -I$(abspath include)
 INC_PATHS += -I$(abspath fastlz)
-INC_PATHS += -I$(abspath adafruit-oled-st7735-dk51/include)
+INC_PATHS += -I$(abspath adafruit-oled-st7735/include)
 INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/libraries/gpiote)
 INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/drivers_nrf/gpiote)
 INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/drivers_nrf/spi_master)
