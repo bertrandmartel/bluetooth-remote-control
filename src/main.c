@@ -580,7 +580,6 @@ int unpack_file()
     uint32_t checksum;
     uint16_t c;
     uint32_t decompressed_size;
-    uint32_t total_extracted;
     uint32_t name_length;
     uint8_t* output_file;
     uint8_t buffer[BLOCK_SIZE];
@@ -602,7 +601,6 @@ int unpack_file()
 
     /* initialize */
     output_file = 0;
-    total_extracted = 0;
     decompressed_size = 0;
     compressed_buffer = 0;
     decompressed_buffer = 0;
@@ -624,13 +622,11 @@ int unpack_file()
         read_chunk_header(&block_offset_unpack, &bit_offset, &chunk_id, &chunk_options,
                           &chunk_size, &chunk_checksum, &chunk_extra);
 
-        #if 0
         SEGGER_RTT_printf(0, "\x1B[32mchunk_id       : %d\x1B[0m\n", chunk_id);
         SEGGER_RTT_printf(0, "\x1B[32mchunk_options  : %d\x1B[0m\n", chunk_options);
         SEGGER_RTT_printf(0, "\x1B[32mchunk_size     : %d\x1B[0m\n", chunk_size);
         SEGGER_RTT_printf(0, "\x1B[32mchunk_checksum : %d\x1B[0m\n", chunk_checksum);
         SEGGER_RTT_printf(0, "\x1B[32mchunk_extra    : %d\x1B[0m\n", chunk_extra);
-        #endif 
 
         if ((chunk_id == 1) && (chunk_size > 10) && (chunk_size < BLOCK_SIZE))
         {
@@ -648,7 +644,6 @@ int unpack_file()
                 return -1;
             }
             decompressed_size = readU32(buffer);
-            total_extracted = 0;
 
             name_length = (uint16_t)readU16(buffer + 8);
 
@@ -682,7 +677,7 @@ int unpack_file()
             case 0:
 
                 /* read one block at at time, write and update checksum */
-                total_extracted += chunk_size;
+
                 remaining = chunk_size;
                 checksum = 1L;
                 for (;;)
@@ -739,7 +734,6 @@ int unpack_file()
                 read_memory_chunk(compressed_buffer, chunk_size, &block_offset_unpack, &bit_offset);
 
                 checksum = update_adler32(1L, compressed_buffer, chunk_size);
-                total_extracted += chunk_extra;
 
                 /* verify that the chunk data is correct */
                 if (checksum != chunk_checksum)
@@ -812,7 +806,7 @@ static void bitmap_handler(ble_displays_t * p_dis, ble_gatts_evt_write_t * p_evt
                 image_part2 = NULL;
                 image_part2 = (uint8_t*)malloc(sizeof(uint8_t) * 1024);
 
-                bitmap_stop_iteration = (bitmap_length / 18);
+                bitmap_stop_iteration = (bitmap_length / 18)+1;
 
                 image_index = 0;
 
@@ -865,9 +859,12 @@ static void bitmap_handler(ble_displays_t * p_dis, ble_gatts_evt_write_t * p_evt
             image_index += p_evt_write->len;
             expecting_length--;
 
+            SEGGER_RTT_printf(0, "\x1B[32mpimage_index : %d et bitmap_length : %d et expecting_length : %d\x1B[0m\n",image_index,bitmap_length,expecting_length);
+
             if ((bitmap_count_iteration == bitmap_stop_iteration) || (image_index == bitmap_length)) {
 
-                if (frame_offset != 0) {
+                if (frame_offset != 0 || (image_index == bitmap_length)) {
+                    
                     //set flags for last chunk
                     final_storage_bitmap_flag = 1;
                     //store last frames in pstorage
@@ -884,25 +881,17 @@ static void bitmap_handler(ble_displays_t * p_dis, ble_gatts_evt_write_t * p_evt
                         SEGGER_RTT_printf(0, "\x1B[32mpstorage_store FAILURE\x1B[0m\n");
                         // Failed to request store, take corrective action.
                     }
-
+                    /*
                     if (final_storage_bitmap_flag == 1) {
 
-                        free(image_part);
-                        image_part = 0;
-                        free(image_part2);
-                        image_part2 = 0;
-
-                        //clear flags
-                        final_storage_bitmap_flag = 0;
-                        SEGGER_RTT_printf(0, "\x1B[32mPSTORAGE_STORE_OP_CODE SUCCESS received. Processing bitmap ...\x1B[0m\n");
-
-                        unpack_file();
-
-                        expecting_length = 0;
-                        image_index=bitmap_length;
                     }
+                    */
 
                     frame_offset = 0;
+                }
+
+                if (image_index == bitmap_length){
+                    expecting_length=0;
                 }
             }
 
@@ -915,7 +904,21 @@ static void bitmap_handler(ble_displays_t * p_dis, ble_gatts_evt_write_t * p_evt
                 dispatch_transmit_status(TRANSMIT_OK);
 
                 if (image_index == bitmap_length) {
+
                     SEGGER_RTT_printf(0, "\x1B[32mReceived ALL frames.\x1B[0m\n");
+
+                    free(image_part);
+                    image_part = 0;
+                    free(image_part2);
+                    image_part2 = 0;
+
+                    //clear flags
+                    final_storage_bitmap_flag = 0;
+                    SEGGER_RTT_printf(0, "\x1B[32mPSTORAGE_STORE_OP_CODE SUCCESS received. Processing bitmap ...\x1B[0m\n");
+
+                    unpack_file();
+
+                    expecting_length = 0;
                     transmit_state = TRANSMIT_COMPLETE;
                     image_index=0;
                     transmit_init=false;
