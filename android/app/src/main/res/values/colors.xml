@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#3F51B5</color>
+    <color name="colorPrimaryDark">#303F9F</color>
+    <color name="colorAccent">#FF4081</color>
+    <color name="tableTextColor">#000000</color>
+    <color name="default_color">#0288D1</color>
+    <color name="background_color">#e6e6e6</color>
+    <color name="grey">#D6D7D7</color>
+    <color name="selected">#039BE5</color>
+</resources>
