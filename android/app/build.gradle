@@ -5,11 +5,11 @@ android {
     buildToolsVersion "22.0.1"
 
     defaultConfig {
-        applicationId "com.github.akinaru.bledisplayremote"
+        applicationId "com.github.akinaru.bleremote"
         minSdkVersion 17
         targetSdkVersion 22
-        versionCode 5
-        versionName "1.4"
+        versionCode 1
+        versionName "1.0"
     }
 
     buildTypes {
