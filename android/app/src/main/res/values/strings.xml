@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">BLE Display Remote</string>
+    <string name="app_name">Ble Remote</string>
     <string name="action_settings">Settings</string>
     <string name="drawer_open">Open navigation drawer</string>
     <string name="drawer_close">Close navigation drawer</string>

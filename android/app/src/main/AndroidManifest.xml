@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.github.akinaru.bledisplayremote">
+    package="com.github.akinaru.bleremote">
 
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
@@ -23,7 +23,7 @@
         </activity>
 
         <service
-            android:name="com.github.akinaru.bledisplayremote.service.BleDisplayRemoteService"
+            android:name="com.github.akinaru.bleremote.service.BleDisplayRemoteService"
             android:enabled="true">
 
             <intent-filter>
