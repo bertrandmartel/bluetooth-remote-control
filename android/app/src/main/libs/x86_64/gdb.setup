@@ -1,3 +1,0 @@
-set solib-search-path /home/akinaru/open_source/ble-remote/android/app/src/main/obj/local/x86_64
-source /home/akinaru/android-ndk/prebuilt/common/gdb/common.setup
-directory /home/akinaru/android-ndk/platforms/android-21/arch-x86_64/usr/include /home/akinaru/android-ndk/sources/android/support/include /home/akinaru/android-ndk/sources/cxx-stl/llvm-libc++ /home/akinaru/android-ndk/sources/android/compiler-rt DK/sources/cxx-stl/gnu-libstdc++/4.8/include /home/akinaru/open_source/ble-remote/android/app/src/main/jni/fastlz-wrapper
