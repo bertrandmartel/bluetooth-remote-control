@@ -41,7 +41,7 @@
 
 /* magic identifier for 6pack file */
 static unsigned char sixpack_magic[8] = {137, '6', 'P', 'K', 13, 10, 26, 10};
-#define BLOCK_SIZE 1024
+#define BLOCK_SIZE 4096
 
 #define E(x,y) x = y,
 enum BUTTON_STATE_ENUM {
@@ -471,10 +471,12 @@ void read_memory_chunk(uint8_t * output_buffer, int length, uint8_t *block_offse
             uint8_t *tmp_buffer = (uint8_t*)malloc(sizeof(uint8_t)*(length + align_offset));
             memset(tmp_buffer, 0, length + align_offset);
 
+            SEGGER_RTT_printf(0, "\x1B[32mrequesting a length of : %d\x1B[0m\n",(length + align_offset));
+
             retval = pstorage_load(tmp_buffer, &block_handle, length + align_offset, *bit_offset - align_offset);
 
             if (retval != NRF_SUCCESS) {
-                SEGGER_RTT_printf(0, "\x1B[32mpstorage_load FAILURE\x1B[0m\n");
+                SEGGER_RTT_printf(0, "\x1B[32mpstorage_load FAILURE1\x1B[0m\n");
             }
 
             for (int i  = align_offset;i < (length+align_offset);i++){
@@ -493,10 +495,12 @@ void read_memory_chunk(uint8_t * output_buffer, int length, uint8_t *block_offse
             uint8_t *tmp_buffer = (uint8_t*)malloc(sizeof(uint8_t)*(limit + align_offset));
             memset(tmp_buffer, 0, limit + align_offset);
 
+            SEGGER_RTT_printf(0, "\x1B[32mrequesting a length of : %d\x1B[0m\n",(limit + align_offset));
+
             retval = pstorage_load(tmp_buffer, &block_handle, limit + align_offset, *bit_offset - align_offset);
 
             if (retval != NRF_SUCCESS) {
-                SEGGER_RTT_printf(0, "\x1B[32mpstorage_load FAILURE\x1B[0m\n");
+                SEGGER_RTT_printf(0, "\x1B[32mpstorage_load FAILURE2\x1B[0m\n");
             }
 
             int index = 0;
@@ -519,17 +523,69 @@ void read_memory_chunk(uint8_t * output_buffer, int length, uint8_t *block_offse
 
             if (retval == NRF_SUCCESS) {
 
-                retval = pstorage_load(tmp_buffer, &block_handle, end_index + align_offset2, 0);
+                SEGGER_RTT_printf(0, "\x1B[32mrequesting a length of : %d\x1B[0m\n",(end_index + align_offset2));
 
-                if (retval != NRF_SUCCESS) {
-                    SEGGER_RTT_printf(0, "\x1B[32mpstorage_load FAILURE\x1B[0m\n");
+                pstorage_size_t data_length = end_index + align_offset2;
+
+                uint32_t remain_data =  0;
+                uint32_t iteration_num = 0;
+
+                if (data_length>1024){
+
+                    iteration_num = data_length/1024;
+                    remain_data = data_length % 1024;
+
+                    for (uint8_t i = 0; i  < iteration_num;i++){
+
+                        SEGGER_RTT_printf(0, "\x1B[32mrequesting a length of : 1024\x1B[0m\n");
+
+                        retval = pstorage_load(tmp_buffer, &block_handle, 1024, 0);
+
+                        if (retval != NRF_SUCCESS) {
+                            SEGGER_RTT_printf(0, "\x1B[32mpstorage_load FAILURE3\x1B[0m\n");
+                        }
+
+                        for (int i  = 0;i < 1024;i++){
+                            output_buffer[limit+i] = tmp_buffer[i];
+                        }
+                        limit+=1024;
+
+                        (*block_offset)++;
+
+                        retval = pstorage_block_identifier_get(&pstorage_handle, *block_offset, &block_handle);
+                    }
+
+                    if (remain_data!=0){
+
+                        uint8_t align_offset3 = remain_data % 4;
+
+                        SEGGER_RTT_printf(0, "\x1B[32mrequesting a length of : %d\x1B[0m\n",(remain_data + align_offset3));
+
+                        retval = pstorage_load(tmp_buffer, &block_handle, remain_data + align_offset3, 0);
+
+                        if (retval != NRF_SUCCESS) {
+                            SEGGER_RTT_printf(0, "\x1B[32mpstorage_load FAILURE4\x1B[0m\n");
+                        }
+
+                        for (int i  = 0;i < remain_data;i++){
+                            output_buffer[limit+i] = tmp_buffer[i];
+                        }
+                    }
+                    (*bit_offset)=remain_data;
                 }
+                else {
+                    retval = pstorage_load(tmp_buffer, &block_handle, data_length, 0);
 
-                for (int i  = 0;i < end_index;i++){
-                    output_buffer[limit+i] = tmp_buffer[i];
+                    if (retval != NRF_SUCCESS) {
+                        SEGGER_RTT_printf(0, "\x1B[32mpstorage_load FAILURE3\x1B[0m\n");
+                    }
+
+                    for (int i  = 0;i < end_index;i++){
+                        output_buffer[limit+i] = tmp_buffer[i];
+                    }
+
+                    (*bit_offset)=end_index;
                 }
-
-                (*bit_offset)=end_index;
             }
             else {
                 SEGGER_RTT_printf(0, "\x1B[32mpstorage_block_identifier_get FAILURE\x1B[0m\n");
@@ -548,6 +604,8 @@ void read_memory_chunk(uint8_t * output_buffer, int length, uint8_t *block_offse
 void read_chunk_header(uint8_t *block_offset_var, uint16_t *bit_offset, uint16_t* id, uint16_t* options, uint32_t* size,
                        uint32_t* checksum, uint32_t* extra)
 {   
+    SEGGER_RTT_printf(0, "\x1B[32mbit_offset : %d & block_offset : %d\x1B[0m\n",*bit_offset,*block_offset_var);
+
     uint8_t *buffer = (uint8_t*)malloc(sizeof(uint8_t)*16);
     memset(buffer, 0, 16);
 
@@ -560,11 +618,6 @@ void read_chunk_header(uint8_t *block_offset_var, uint16_t *bit_offset, uint16_t
     *extra = readU32(buffer + 12) & 0xffffffff;
 
     free(buffer);
-    buffer=0;
-}
-
-int uncompress(const void* input, int length, void* output, int maxout) {
-    return fastlz_decompress(input, length, output, maxout);
 }
 
 int unpack_file()
@@ -582,11 +635,8 @@ int unpack_file()
     uint32_t decompressed_size;
     uint32_t name_length;
     uint8_t* output_file;
-    uint8_t buffer[BLOCK_SIZE];
     uint8_t* compressed_buffer;
     uint8_t* decompressed_buffer;
-    uint32_t compressed_bufsize;
-    uint32_t decompressed_bufsize;
 
     /* not a 6pack archive? */
     if (!detect_magic())
@@ -604,8 +654,6 @@ int unpack_file()
     decompressed_size = 0;
     compressed_buffer = 0;
     decompressed_buffer = 0;
-    compressed_bufsize = 0;
-    decompressed_bufsize = 0;
 
     set_bitmap_stream();
 
@@ -633,6 +681,7 @@ int unpack_file()
             free(output_file);
             output_file = 0;
 
+            uint8_t * buffer = (uint8_t*)malloc(sizeof(uint8_t)*chunk_size);
             read_memory_chunk(buffer, chunk_size, &block_offset_unpack, &bit_offset);
 
             checksum = update_adler32(1L, buffer, chunk_size);
@@ -657,6 +706,7 @@ int unpack_file()
             for (c = 0; c < name_length; c++){
                 output_file[c] = buffer[10 + c];
             }
+            free(buffer);
 
             SEGGER_RTT_printf(0, "\x1B[32mfile name : %s\x1B[0m\n", output_file);
 
@@ -668,7 +718,7 @@ int unpack_file()
         if ((chunk_id == 17) && output_file && decompressed_size)
         {
 
-            unsigned long remaining;
+            uint32_t remaining;
 
             /* uncompressed */
             switch (chunk_options)
@@ -692,11 +742,14 @@ int unpack_file()
                         r = (BLOCK_SIZE < remaining) ? BLOCK_SIZE : remaining;
                     }
 
+                    uint8_t *buffer = (uint8_t*)malloc(sizeof(uint8_t)*r);
                     read_memory_chunk(buffer, r, &block_offset_unpack, &bit_offset);
 
                     draw_bitmap_st7735_stream(buffer,r);
 
                     checksum = update_adler32(checksum, buffer, r);
+                    free(buffer);
+
                     remaining -= r;
 
                     if (remaining <= 0)
@@ -715,21 +768,9 @@ int unpack_file()
 
             /* compressed using FastLZ */
             case 1:
-                /* enlarge input buffer if necessary */
-                if (chunk_size > compressed_bufsize)
-                {
-                    compressed_bufsize = chunk_size;
-                    free(compressed_buffer);
-                    compressed_buffer = (uint8_t*)malloc(sizeof(uint8_t)*compressed_bufsize);
-                }
-
-                /* enlarge output buffer if necessary */
-                if (chunk_extra > decompressed_bufsize)
-                {
-                    decompressed_bufsize = chunk_extra;
-                    free(decompressed_buffer);
-                    decompressed_buffer = (uint8_t*)malloc(sizeof(uint8_t)*decompressed_bufsize);
-                }
+                
+                compressed_buffer = (uint8_t*)malloc(sizeof(uint8_t)*chunk_size);
+                decompressed_buffer = (uint8_t*)malloc(sizeof(uint8_t)*chunk_extra);
 
                 read_memory_chunk(compressed_buffer, chunk_size, &block_offset_unpack, &bit_offset);
 
@@ -749,6 +790,8 @@ int unpack_file()
                 {
                     /* decompress and verify */
                     remaining = fastlz_decompress(compressed_buffer, chunk_size, decompressed_buffer, chunk_extra);
+                    free(compressed_buffer);
+
                     if (remaining != chunk_extra)
                     {
                         SEGGER_RTT_printf(0, "\nError: decompression failed. Skipped.\n");
@@ -756,7 +799,7 @@ int unpack_file()
                     else{
                         draw_bitmap_st7735_stream(decompressed_buffer,chunk_extra);
                     }
-                      
+                    free(decompressed_buffer);
                 }
                 break;
 
@@ -772,8 +815,6 @@ int unpack_file()
     }
 
     /* free allocated stuff */
-    free(compressed_buffer);
-    free(decompressed_buffer);
     free(output_file);
 
     SEGGER_RTT_printf(0, "\nFINISHED\n");
