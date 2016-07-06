@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/button_group"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center"
+    android:gravity="center"
+    android:paddingTop="5dp">
+
+    <ImageButton
+        android:id="@+id/button2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:background="@android:color/transparent"
+        android:paddingBottom="5dp"
+
+        android:src="@drawable/selector_nav_ok_unique" />
+
+    <ImageButton
+        android:id="@+id/button1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/button2"
+        android:layout_alignStart="@+id/button2"
+        android:layout_below="@+id/button2"
+        android:background="@android:color/transparent"
+        android:src="@drawable/selector_nav_ok_unique" />
+
+    <ImageButton
+        android:id="@+id/button3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBottom="@+id/button1"
+        android:layout_toEndOf="@+id/button2"
+        android:layout_toRightOf="@+id/button2"
+        android:background="@android:color/transparent"
+        android:src="@drawable/selector_nav_ok_unique" />
+
+    <ImageButton
+        android:id="@+id/button4"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_toEndOf="@+id/button2"
+        android:layout_toRightOf="@+id/button2"
+        android:background="@android:color/transparent"
+        android:paddingBottom="3dp"
+        android:src="@drawable/selector_nav_ok_unique" />
+</RelativeLayout>

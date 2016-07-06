@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/led_group"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center"
+    android:gravity="center"
+    android:paddingTop="5dp">
+
+    <ImageButton
+        android:id="@+id/led2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_below="@+id/led_text"
+        android:layout_centerHorizontal="true"
+        android:background="@android:color/transparent"
+        android:paddingBottom="5dp"
+        android:src="@drawable/nav_ok_pressed_unique" />
+
+    <ImageButton
+        android:id="@+id/led1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/led2"
+        android:layout_alignStart="@+id/led2"
+        android:layout_below="@+id/led2"
+        android:background="@android:color/transparent"
+        android:src="@drawable/nav_ok_pressed_unique" />
+
+    <ImageButton
+        android:id="@+id/led3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignStart="@+id/led4"
+        android:layout_below="@+id/led2"
+        android:background="@android:color/transparent"
+        android:src="@drawable/nav_ok_pressed_unique" />
+
+    <ImageButton
+        android:id="@+id/led4"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_toEndOf="@+id/led2"
+        android:background="@android:color/transparent"
+        android:paddingBottom="3dp"
+        android:src="@drawable/nav_ok_pressed_unique" />
+</RelativeLayout>
