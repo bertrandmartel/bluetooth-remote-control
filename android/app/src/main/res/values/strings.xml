@@ -33,6 +33,7 @@
     <string name="menu_item_about">About</string>
     <string name="menu_item_open_soçurce_components">Open Source components</string>
     <string name="menu_item_report_bugs">Report Bugs</string>
+    <string name="menu_item_disconnect_device">disconnect</string>
     <string name="menu_item_rfdroid_device">RFdroid device</string>
     <string name="menu_item_switch_data_packet_count">Switch chart data to \'packet count\'</string>
 </resources>

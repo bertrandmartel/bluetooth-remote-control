@@ -102,9 +102,6 @@ public class DeviceActivity extends BaseActivity {
         });
         mBitmapRecyclerView.setAdapter(mAdapter);
 
-        //register bluetooth event broadcast receiver
-        registerReceiver(mBluetoothReceiver, makeGattUpdateIntentFilter());
-
         RelativeLayout btnLayout = (RelativeLayout) findViewById(R.id.button_group);
         RelativeLayout ledLayout = (RelativeLayout) findViewById(R.id.led_group);
 
@@ -289,15 +286,52 @@ public class DeviceActivity extends BaseActivity {
                 }
             }
         });
-
-        mConnectingProgressDialog = ProgressDialog.show(this, "", "Looking for for device ...");
-        mConnectingProgressDialog.show();
+        //register bluetooth event broadcast receiver
+        registerReceiver(mBluetoothReceiver, makeGattUpdateIntentFilter());
 
         //bind to service
         if (mBluetoothAdapter.isEnabled()) {
             Intent intent = new Intent(this, BleDisplayRemoteService.class);
             mBound = bindService(intent, mServiceConnection, BIND_AUTO_CREATE);
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        createProgressConnect();
+        triggerNewScan();
+    }
+
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        mService.disconnectall();
+
+        if (mConnectingProgressDialog != null) {
+            mConnectingProgressDialog.cancel();
+            mConnectingProgressDialog.dismiss();
+        }
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        unregisterReceiver(mBluetoothReceiver);
+        unbindService(mServiceConnection);
+        mBound = false;
+    }
+
+    private void createProgressConnect() {
+        if (mConnectingProgressDialog != null) {
+            mConnectingProgressDialog.cancel();
+            mConnectingProgressDialog.dismiss();
+        }
+        mConnectingProgressDialog = ProgressDialog.show(this, "", "Looking for for device ...");
+        mConnectingProgressDialog.show();
     }
 
     private void toggleLed(int newMask, IPushListener listener) {
@@ -350,12 +384,6 @@ public class DeviceActivity extends BaseActivity {
         }
     };
 
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        unregisterReceiver(mBluetoothReceiver);
-    }
-
     public static byte[] readFully(InputStream input) throws IOException {
         byte[] buffer = new byte[8192];
         int bytesRead;
@@ -376,10 +404,21 @@ public class DeviceActivity extends BaseActivity {
             final String action = intent.getAction();
 
             if (BluetoothEvents.BT_EVENT_DEVICE_DISCONNECTED.equals(action)) {
+
                 Log.v(TAG, "Device disconnected");
+                createProgressConnect();
+                mService.clearScanningList();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        triggerNewScan();
+                    }
+                });
             } else if (BluetoothEvents.BT_EVENT_DEVICE_CONNECTED.equals(action)) {
                 Log.v(TAG, "Device connected");
-
+                Toast.makeText(DeviceActivity.this, "device connected", Toast.LENGTH_SHORT).show();
+                mConnectingProgressDialog.cancel();
+                mConnectingProgressDialog.dismiss();
                 if (mService.getConnectionList().get(mBtDevice.getDeviceAddress()) != null) {
 
                     if (mService.getConnectionList().get(mBtDevice.getDeviceAddress()).getDevice() instanceof IBleDisplayRemoteDevice) {
@@ -511,9 +550,6 @@ public class DeviceActivity extends BaseActivity {
                             }
                         });
                     }
-                    if (mConnectingProgressDialog != null) {
-                        mConnectingProgressDialog.dismiss();
-                    }
                 }
             } else if (BluetoothEvents.BT_EVENT_SCAN_START.equals(action)) {
                 Log.v(TAG, "Scan has started");
@@ -524,6 +560,7 @@ public class DeviceActivity extends BaseActivity {
                 final BluetoothObject btDeviceTmp = BluetoothObject.parseArrayList(intent);
 
                 if (btDeviceTmp.getDeviceName().equals("BleDisplayRemote")) {
+                    Log.v(TAG, "found new device");
                     mConnectingProgressDialog.setMessage("Connecting to device ...");
                     mService.stopScan();
                     mBtDevice = btDeviceTmp;
@@ -546,5 +583,12 @@ public class DeviceActivity extends BaseActivity {
         intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_CONNECTED);
         intentFilter.addAction(BluetoothEvents.BT_EVENT_DEVICE_DISCONNECTED);
         return intentFilter;
+    }
+
+    @Override
+    public void disconnect() {
+        if (mService != null) {
+            mService.disconnectall();
+        }
     }
 }
