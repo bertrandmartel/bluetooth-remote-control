@@ -3,10 +3,6 @@
     <group android:checkableBehavior="single">
 
         <item
-            android:id="@+id/scan_btn_nv"
-            android:icon="@drawable/ic_portable_wifi_off"
-            android:title="@string/menu_title_stop_scan" />
-        <item
             android:id="@+id/report_bugs"
             android:icon="@drawable/ic_bug_report"
             android:title="@string/menu_item_report_bugs" />

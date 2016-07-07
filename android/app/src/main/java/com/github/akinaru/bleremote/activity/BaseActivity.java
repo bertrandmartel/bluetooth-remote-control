@@ -32,15 +32,11 @@ import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
-import android.widget.ImageButton;
-import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import com.github.akinaru.bleremote.R;
-import com.github.akinaru.bleremote.inter.IBtActivity;
 import com.github.akinaru.bleremote.menu.MenuUtils;
 import com.github.akinaru.bleremote.service.BleDisplayRemoteService;
 
@@ -49,9 +45,7 @@ import com.github.akinaru.bleremote.service.BleDisplayRemoteService;
  *
  * @author Bertrand Martel
  */
-public abstract class BaseActivity extends AppCompatActivity implements IBtActivity {
-
-    private final static String TAG = BaseActivity.class.getSimpleName();
+public abstract class BaseActivity extends AppCompatActivity {
 
     /**
      * define is service is bound or not
@@ -108,18 +102,6 @@ public abstract class BaseActivity extends AppCompatActivity implements IBtActiv
         layoutId = resId;
     }
 
-    /**
-     * scan image button at top right
-     */
-    protected ImageButton scanImage;
-
-    /**
-     * toolbar progress bar at top right
-     */
-    protected ProgressBar progressBar;
-
-    protected MenuItem scanMenuItem;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -174,10 +156,22 @@ public abstract class BaseActivity extends AppCompatActivity implements IBtActiv
                 new NavigationView.OnNavigationItemSelectedListener() {
                     @Override
                     public boolean onNavigationItemSelected(MenuItem menuItem) {
-                        MenuUtils.selectDrawerItem(menuItem, mDrawer, BaseActivity.this, BaseActivity.this);
+                        MenuUtils.selectDrawerItem(menuItem, mDrawer, BaseActivity.this);
                         return true;
                     }
                 });
+    }
+
+    /**
+     * trigger a BLE scan
+     */
+    public void triggerNewScan() {
+
+        if (mService != null && !mService.isScanning()) {
+            mService.disconnectall();
+            mService.startScan();
+
+        }
     }
 
     /**
@@ -216,103 +210,9 @@ public abstract class BaseActivity extends AppCompatActivity implements IBtActiv
         }
     }
 
-    /**
-     * toggle bluetooth scanning state
-     */
-    @Override
-    public void toggleScan() {
-
-        if (mService != null && mService.isScanning()) {
-            Log.v(TAG, "scanning stopped...");
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    Toast.makeText(BaseActivity.this, getResources().getString(R.string.toast_scan_stop), Toast.LENGTH_SHORT).show();
-                    nvDrawer.getMenu().findItem(R.id.scan_btn_nv).setIcon(R.drawable.ic_looks);
-                    nvDrawer.getMenu().findItem(R.id.scan_btn_nv).setTitle(getResources().getString(R.string.menu_title_start_scan));
-                }
-            });
-            hideProgressBar();
-            mService.stopScan();
-        } else {
-            Log.v(TAG, "scanning ...");
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    Toast.makeText(BaseActivity.this, getResources().getString(R.string.toast_scan_start), Toast.LENGTH_SHORT).show();
-                    nvDrawer.getMenu().findItem(R.id.scan_btn_nv).setIcon(R.drawable.ic_portable_wifi_off);
-                    nvDrawer.getMenu().findItem(R.id.scan_btn_nv).setTitle(getResources().getString(R.string.menu_title_stop_scan));
-                }
-            });
-            triggerNewScan();
-        }
-
-    }
-
-    /**
-     * trigger a BLE scan
-     */
-    public void triggerNewScan() {
-
-        if (mService != null && !mService.isScanning()) {
-            Log.v(TAG, "start scan");
-            mService.disconnectall();
-            mService.startScan();
-
-        }
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                showProgressBar();
-            }
-        });
-    }
-
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         this.getMenuInflater().inflate(R.menu.toolbar_menu, menu);
-        scanMenuItem = menu.findItem(R.id.scanning_button);
-        scanImage = (ImageButton) menu.findItem(R.id.scanning_button).getActionView().findViewById(R.id.bluetooth_scan_stop);
-        progressBar = (ProgressBar) menu.findItem(R.id.scanning_button).getActionView().findViewById(R.id.bluetooth_scanning);
-        scanImage.setOnClickListener(new View.OnClickListener() {
-
-            @Override
-            public void onClick(View v) {
-                toggleScan();
-            }
-        });
-        progressBar.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                toggleScan();
-            }
-        });
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                showProgressBar();
-            }
-        });
         return super.onCreateOptionsMenu(menu);
-    }
-
-    /**
-     * show progress bar to indicate scanning
-     */
-    protected void showProgressBar() {
-        if (scanImage != null)
-            scanImage.setVisibility(View.GONE);
-        if (progressBar != null)
-            progressBar.setVisibility(View.VISIBLE);
-    }
-
-    /**
-     * hide scanning progress bar
-     */
-    protected void hideProgressBar() {
-        if (scanImage != null)
-            scanImage.setVisibility(View.VISIBLE);
-        if (progressBar != null)
-            progressBar.setVisibility(View.GONE);
     }
 }

@@ -1,5 +1,6 @@
 package com.github.akinaru.bleremote.activity;
 
+import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -14,7 +15,6 @@ import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageButton;
-import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
 
@@ -68,7 +68,8 @@ public class DeviceActivity extends BaseActivity {
 
     private RecyclerView mBitmapRecyclerView;
     private RecyclerView.Adapter mAdapter;
-    private RecyclerView.LayoutManager mLayoutManager;
+
+    private ProgressDialog mConnectingProgressDialog;
 
     protected void onCreate(Bundle savedInstanceState) {
         setLayout(R.layout.device_activity);
@@ -90,19 +91,19 @@ public class DeviceActivity extends BaseActivity {
         mAdapter = new BitmapAdapter(this, mBitmapList, new IViewHolderClickListener() {
             @Override
             public void onClick(View v) {
-                Log.i(TAG, "click");
+
+                InputStream is = getResources().openRawResource(R.raw.github_reverse_compressed4096);
+                try {
+                    mDisplayDevice.sendBitmapEncodedBitmask(readFully(is));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         });
         mBitmapRecyclerView.setAdapter(mAdapter);
 
         //register bluetooth event broadcast receiver
         registerReceiver(mBluetoothReceiver, makeGattUpdateIntentFilter());
-
-        //set device address to analyze
-        String deviceAddr = getIntent().getExtras().getString("deviceAddress");
-        String deviceName = getIntent().getExtras().getString("deviceName");
-        int adInterval = getIntent().getExtras().getInt("advertizingInterval");
-        mBtDevice = new BluetoothObject(deviceAddr, deviceName, adInterval);
 
         RelativeLayout btnLayout = (RelativeLayout) findViewById(R.id.button_group);
         RelativeLayout ledLayout = (RelativeLayout) findViewById(R.id.led_group);
@@ -289,6 +290,9 @@ public class DeviceActivity extends BaseActivity {
             }
         });
 
+        mConnectingProgressDialog = ProgressDialog.show(this, "", "Looking for for device ...");
+        mConnectingProgressDialog.show();
+
         //bind to service
         if (mBluetoothAdapter.isEnabled()) {
             Intent intent = new Intent(this, BleDisplayRemoteService.class);
@@ -305,6 +309,23 @@ public class DeviceActivity extends BaseActivity {
         }
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+
+        if (requestCode == REQUEST_ENABLE_BT) {
+
+            if (mBluetoothAdapter.isEnabled()) {
+                Intent intent = new Intent(this, BleDisplayRemoteService.class);
+                // bind the service to current activity and create it if it didnt exist before
+                startService(intent);
+                mBound = bindService(intent, mServiceConnection, BIND_AUTO_CREATE);
+
+            } else {
+                Toast.makeText(this, getResources().getString(R.string.toast_bluetooth_disabled), Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
     /**
      * Manage Bluetooth Service
      */
@@ -314,9 +335,14 @@ public class DeviceActivity extends BaseActivity {
         public void onServiceConnected(ComponentName name, IBinder service) {
 
             Log.v(TAG, "connected to service");
-
             mService = ((BleDisplayRemoteService.LocalBinder) service).getService();
-            mService.connect(mBtDevice.getDeviceAddress());
+            mService.clearScanningList();
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    triggerNewScan();
+                }
+            });
         }
 
         @Override
@@ -360,23 +386,6 @@ public class DeviceActivity extends BaseActivity {
 
                         mDisplayDevice = (IBleDisplayRemoteDevice) mService.getConnectionList().get(mBtDevice.getDeviceAddress()).getDevice();
 
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                ImageView button = (ImageView) findViewById(R.id.logo_image);
-                                button.setOnClickListener(new View.OnClickListener() {
-                                    @Override
-                                    public void onClick(View v) {
-                                        InputStream is = getResources().openRawResource(R.raw.github_reverse_compressed4096);
-                                        try {
-                                            mDisplayDevice.sendBitmapEncodedBitmask(readFully(is));
-                                        } catch (IOException e) {
-                                            e.printStackTrace();
-                                        }
-                                    }
-                                });
-                            }
-                        });
                         mDisplayDevice.addButtonListener(new IButtonListener() {
                             @Override
                             public void onButtonStateChange(final Button button, ButtonState state) {
@@ -502,6 +511,23 @@ public class DeviceActivity extends BaseActivity {
                             }
                         });
                     }
+                    if (mConnectingProgressDialog != null) {
+                        mConnectingProgressDialog.dismiss();
+                    }
+                }
+            } else if (BluetoothEvents.BT_EVENT_SCAN_START.equals(action)) {
+                Log.v(TAG, "Scan has started");
+            } else if (BluetoothEvents.BT_EVENT_SCAN_END.equals(action)) {
+                Log.v(TAG, "Scan has ended");
+            } else if (BluetoothEvents.BT_EVENT_DEVICE_DISCOVERED.equals(action)) {
+                Log.v(TAG, "New device has been discovered");
+                final BluetoothObject btDeviceTmp = BluetoothObject.parseArrayList(intent);
+
+                if (btDeviceTmp.getDeviceName().equals("BleDisplayRemote")) {
+                    mConnectingProgressDialog.setMessage("Connecting to device ...");
+                    mService.stopScan();
+                    mBtDevice = btDeviceTmp;
+                    mService.connect(mBtDevice.getDeviceAddress());
                 }
             }
         }

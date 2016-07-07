@@ -2,9 +2,4 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <item
-        android:id="@+id/scanning_button"
-        android:title="scan"
-        app:actionLayout="@layout/scanning_action"
-        app:showAsAction="ifRoom" />
 </menu>
