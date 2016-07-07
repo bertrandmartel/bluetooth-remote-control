@@ -19,28 +19,13 @@
             android:layout_height="?actionBarSize"
             android:layout_marginTop="10dp" />
 
-        <RelativeLayout
+        <!-- A RecyclerView with some commonly used attributes -->
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/bitmap_recycler_view"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center">
-
-            <ImageView
-                android:layout_width="128dp"
-                android:layout_height="160dp"
-                android:alpha="0.3"
-                android:background="@drawable/border_image"
-                android:padding="1dp"
-                android:id="@+id/logo_image"
-                android:src="@drawable/logo_github16" />
-
-            <ImageView
-                android:layout_width="128dp"
-                android:layout_height="160dp"
-                android:layout_centerInParent="true"
-                android:alpha="0.8"
-                android:scaleType="fitCenter"
-                android:src="@drawable/download" />
-        </RelativeLayout>
+            android:layout_gravity="center"
+            android:scrollbars="horizontal" />
 
         <uz.shift.colorpicker.LineColorPicker xmlns:app="http://schemas.android.com/apk/res-auto"
             android:id="@+id/picker"

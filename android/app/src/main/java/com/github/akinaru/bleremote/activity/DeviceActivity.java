@@ -9,6 +9,8 @@ import android.content.ServiceConnection;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageButton;
@@ -17,12 +19,14 @@ import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import com.github.akinaru.bleremote.R;
+import com.github.akinaru.bleremote.adapter.BitmapAdapter;
 import com.github.akinaru.bleremote.bluetooth.events.BluetoothEvents;
 import com.github.akinaru.bleremote.bluetooth.events.BluetoothObject;
 import com.github.akinaru.bleremote.bluetooth.listener.IPushListener;
 import com.github.akinaru.bleremote.inter.IBleDisplayRemoteDevice;
 import com.github.akinaru.bleremote.inter.IButtonListener;
 import com.github.akinaru.bleremote.inter.IDirectionPadListener;
+import com.github.akinaru.bleremote.inter.IViewHolderClickListener;
 import com.github.akinaru.bleremote.model.Button;
 import com.github.akinaru.bleremote.model.ButtonState;
 import com.github.akinaru.bleremote.model.DpadState;
@@ -32,7 +36,9 @@ import com.github.akinaru.bleremote.service.BleDisplayRemoteService;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import uz.shift.colorpicker.LineColorPicker;
 import uz.shift.colorpicker.OnColorChangedListener;
@@ -58,9 +64,36 @@ public class DeviceActivity extends BaseActivity {
 
     private DpadState dpadState = DpadState.NONE;
 
+    private List<Integer> mBitmapList = new ArrayList<>();
+
+    private RecyclerView mBitmapRecyclerView;
+    private RecyclerView.Adapter mAdapter;
+    private RecyclerView.LayoutManager mLayoutManager;
+
     protected void onCreate(Bundle savedInstanceState) {
         setLayout(R.layout.device_activity);
         super.onCreate(savedInstanceState);
+
+        mBitmapRecyclerView = (RecyclerView) findViewById(R.id.bitmap_recycler_view);
+
+        // use this setting to improve performance if you know that changes
+        // in content do not change the layout size of the RecyclerView
+        mBitmapRecyclerView.setHasFixedSize(true);
+
+        // use a linear layout manager
+        mBitmapRecyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+
+        mBitmapList.add(R.drawable.logo_github16);
+        mBitmapList.add(R.drawable.ic_control_point);
+
+        // specify an adapter (see also next example)
+        mAdapter = new BitmapAdapter(this, mBitmapList, new IViewHolderClickListener() {
+            @Override
+            public void onClick(View v) {
+                Log.i(TAG, "click");
+            }
+        });
+        mBitmapRecyclerView.setAdapter(mAdapter);
 
         //register bluetooth event broadcast receiver
         registerReceiver(mBluetoothReceiver, makeGattUpdateIntentFilter());

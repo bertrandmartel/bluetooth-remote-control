@@ -6,5 +6,5 @@
 .DS_Store
 /build
 /captures
-app/src/main/objs
+app/src/main/obj
 app/src/main/libs
