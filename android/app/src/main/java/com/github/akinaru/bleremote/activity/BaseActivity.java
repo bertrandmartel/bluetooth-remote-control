@@ -29,7 +29,6 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.Window;
@@ -37,6 +36,7 @@ import android.view.WindowManager;
 import android.widget.Toast;
 
 import com.github.akinaru.bleremote.R;
+import com.github.akinaru.bleremote.inter.IRemoteActivity;
 import com.github.akinaru.bleremote.menu.MenuUtils;
 import com.github.akinaru.bleremote.service.BleDisplayRemoteService;
 
@@ -45,7 +45,7 @@ import com.github.akinaru.bleremote.service.BleDisplayRemoteService;
  *
  * @author Bertrand Martel
  */
-public abstract class BaseActivity extends AppCompatActivity {
+public abstract class BaseActivity extends AppCompatActivity implements IRemoteActivity {
 
     /**
      * define is service is bound or not
@@ -156,7 +156,7 @@ public abstract class BaseActivity extends AppCompatActivity {
                 new NavigationView.OnNavigationItemSelectedListener() {
                     @Override
                     public boolean onNavigationItemSelected(MenuItem menuItem) {
-                        MenuUtils.selectDrawerItem(menuItem, mDrawer, BaseActivity.this);
+                        MenuUtils.selectDrawerItem(menuItem, mDrawer, BaseActivity.this, BaseActivity.this);
                         return true;
                     }
                 });
@@ -170,7 +170,6 @@ public abstract class BaseActivity extends AppCompatActivity {
         if (mService != null && !mService.isScanning()) {
             mService.disconnectall();
             mService.startScan();
-
         }
     }
 

@@ -27,6 +27,7 @@ import android.view.MenuItem;
 import com.github.akinaru.bleremote.R;
 import com.github.akinaru.bleremote.dialog.AboutDialog;
 import com.github.akinaru.bleremote.dialog.OpenSourceItemsDialog;
+import com.github.akinaru.bleremote.inter.IRemoteActivity;
 
 /**
  * Some functions used to manage Menu
@@ -42,9 +43,15 @@ public class MenuUtils {
      * @param mDrawer  navigation drawer
      * @param context  android context
      */
-    public static void selectDrawerItem(MenuItem menuItem, DrawerLayout mDrawer, Context context) {
+    public static void selectDrawerItem(MenuItem menuItem, DrawerLayout mDrawer, Context context, IRemoteActivity remoteActivity) {
 
         switch (menuItem.getItemId()) {
+            case R.id.disconnect_device: {
+                if (remoteActivity != null) {
+                    remoteActivity.disconnect();
+                }
+                break;
+            }
             case R.id.report_bugs: {
                 Intent intent = new Intent(Intent.ACTION_SENDTO, Uri.fromParts(
                         "mailto", context.getResources().getString(R.string.email_addr), null));

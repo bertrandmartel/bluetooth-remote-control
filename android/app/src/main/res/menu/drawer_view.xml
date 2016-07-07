@@ -3,6 +3,11 @@
     <group android:checkableBehavior="single">
 
         <item
+            android:id="@+id/disconnect_device"
+            android:icon="@drawable/ic_portable_disconnect"
+            android:title="@string/menu_item_disconnect_device" />
+
+        <item
             android:id="@+id/report_bugs"
             android:icon="@drawable/ic_bug_report"
             android:title="@string/menu_item_report_bugs" />
