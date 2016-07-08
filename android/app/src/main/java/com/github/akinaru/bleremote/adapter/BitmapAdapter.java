@@ -9,19 +9,20 @@ import android.widget.ImageView;
 
 import com.github.akinaru.bleremote.R;
 import com.github.akinaru.bleremote.inter.IViewHolderClickListener;
+import com.github.akinaru.bleremote.model.BitmapObj;
 
 import java.util.List;
 
 public class BitmapAdapter extends RecyclerView.Adapter<BitmapAdapter.ViewHolder> {
 
-    private List<Integer> mBitmapList;
+    private List<BitmapObj> mBitmapList;
 
     private IViewHolderClickListener mListener;
 
     private Context mContext;
 
     // Provide a suitable constructor (depends on the kind of dataset)
-    public BitmapAdapter(Context context, List<Integer> bitmapList, IViewHolderClickListener listener) {
+    public BitmapAdapter(Context context, List<BitmapObj> bitmapList, IViewHolderClickListener listener) {
         mContext = context;
         mBitmapList = bitmapList;
         this.mListener = listener;
@@ -42,11 +43,15 @@ public class BitmapAdapter extends RecyclerView.Adapter<BitmapAdapter.ViewHolder
     // Replace the contents of a view (invoked by the layout manager)
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
-        int item = mBitmapList.get(position);
-        holder.bitmap.setImageResource(item);
-        if (item == R.drawable.ic_control_point) {
+        BitmapObj item = mBitmapList.get(position);
+        holder.ressourceId = item.getRessourceId();
+        holder.bitmap.setImageBitmap(item.getBitmap());
+        if (item.getRessourceId() == R.drawable.ic_control_point) {
             holder.bitmap.setPadding(0, 0, 0, 0);
             holder.bitmap.setScaleType(ImageView.ScaleType.CENTER);
+        } else {
+            holder.bitmap.setPadding(10, 0, 0, 0);
+            holder.bitmap.setScaleType(ImageView.ScaleType.FIT_CENTER);
         }
     }
 
@@ -65,6 +70,8 @@ public class BitmapAdapter extends RecyclerView.Adapter<BitmapAdapter.ViewHolder
 
         public IViewHolderClickListener mListener;
 
+        public int ressourceId;
+
         /**
          * ViewHolder
          *
@@ -80,7 +87,7 @@ public class BitmapAdapter extends RecyclerView.Adapter<BitmapAdapter.ViewHolder
 
         @Override
         public void onClick(View v) {
-            mListener.onClick(v);
+            mListener.onClick(v, ressourceId);
         }
     }
 }
