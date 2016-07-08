@@ -19,6 +19,7 @@
 package com.github.akinaru.bleremote.inter;
 
 import android.view.View;
+import android.widget.ImageView;
 
 /**
  * click listener for scan recyclerview adapter
@@ -27,5 +28,5 @@ import android.view.View;
  */
 public interface IViewHolderClickListener {
 
-    void onClick(View v);
+    void onClick(View v, int ressourceId);
 }
