@@ -24,7 +24,7 @@
     <string name="menu_item_title_packet_count">Switch chart data to \'packet count\'</string>
     <string name="interval">Interval</string>
     <string name="email_addr">bmartel.fr@gmail.com</string>
-    <string name="issue_subject">Bluetooth LE Analyzer Issue</string>
+    <string name="issue_subject">BLE Remote</string>
     <string name="report_hint">Your error report here...</string>
     <string name="issue_title">Report a problem</string>
     <string name="scan_no_device">no device detected...</string>
@@ -36,4 +36,6 @@
     <string name="menu_item_disconnect_device">disconnect</string>
     <string name="menu_item_rfdroid_device">RFdroid device</string>
     <string name="menu_item_switch_data_packet_count">Switch chart data to \'packet count\'</string>
+    <string name="toolbar_add_image">add image</string>
+    <string name="toolbar_delete_image">delete image</string>
 </resources>

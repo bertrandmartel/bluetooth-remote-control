@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
-
+    <item
+        android:id="@+id/add_image"
+        android:icon="@drawable/ic_action_add"
+        android:title="@string/toolbar_add_image"
+        app:showAsAction="always" />
+    <item
+        android:id="@+id/delete_image"
+        android:icon="@drawable/ic_delete_forever"
+        android:title="@string/toolbar_delete_image"
+        android:visible="false"
+        app:showAsAction="always" />
 </menu>

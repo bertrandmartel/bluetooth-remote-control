@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:layout_gravity="center"
@@ -10,12 +10,23 @@
     <ImageView
         android:id="@+id/logo_image"
         android:layout_width="128dp"
-        android:scaleType="fitCenter"
         android:layout_height="160dp"
         android:paddingBottom="0dp"
         android:paddingLeft="10dp"
         android:paddingRight="0dp"
         android:paddingTop="0dp"
+        android:scaleType="fitCenter"
         android:src="@drawable/logo_github16" />
 
-</LinearLayout>
+    <ImageView
+        android:id="@+id/check_bitmap"
+        android:layout_width="128dp"
+        android:layout_height="160dp"
+        android:paddingBottom="0dp"
+        android:paddingLeft="10dp"
+        android:paddingRight="0dp"
+        android:paddingTop="0dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_check_circle"
+        android:visibility="gone" />
+</RelativeLayout>

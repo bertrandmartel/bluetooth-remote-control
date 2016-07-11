@@ -1,7 +1,6 @@
 package com.github.akinaru.bleremote.activity;
 
 import android.app.ProgressDialog;
-import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -9,14 +8,12 @@ import android.content.ContextWrapper;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
-import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.provider.OpenableColumns;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
@@ -25,6 +22,7 @@ import android.widget.ImageButton;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
 
+import com.android.camera.CropImageIntentBuilder;
 import com.github.akinaru.bleremote.R;
 import com.github.akinaru.bleremote.adapter.BitmapAdapter;
 import com.github.akinaru.bleremote.bluetooth.events.BluetoothEvents;
@@ -34,12 +32,14 @@ import com.github.akinaru.bleremote.inter.IBleDisplayRemoteDevice;
 import com.github.akinaru.bleremote.inter.IButtonListener;
 import com.github.akinaru.bleremote.inter.IDirectionPadListener;
 import com.github.akinaru.bleremote.inter.IViewHolderClickListener;
+import com.github.akinaru.bleremote.inter.IViewHolderLongClickListener;
 import com.github.akinaru.bleremote.model.BitmapObj;
 import com.github.akinaru.bleremote.model.Button;
 import com.github.akinaru.bleremote.model.ButtonState;
 import com.github.akinaru.bleremote.model.DpadState;
 import com.github.akinaru.bleremote.model.Led;
 import com.github.akinaru.bleremote.service.BleDisplayRemoteService;
+import com.github.akinaru.bleremote.utils.RandomGen;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -48,11 +48,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URISyntaxException;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 
 import uz.shift.colorpicker.LineColorPicker;
 import uz.shift.colorpicker.OnColorChangedListener;
@@ -78,18 +74,11 @@ public class DeviceActivity extends BaseActivity {
 
     private DpadState dpadState = DpadState.NONE;
 
-    private List<BitmapObj> mBitmapList = new ArrayList<>();
-
-    private RecyclerView mBitmapRecyclerView;
-    private RecyclerView.Adapter mAdapter;
-
     private ProgressDialog mConnectingProgressDialog;
-
-    private boolean mExitOnBrowse = false;
 
     private final static String BITMAP_DIRECTORY = "bitmap";
 
-    final int PIC_CROP = 3;
+    private String mSavedImage;
 
     protected void onCreate(Bundle savedInstanceState) {
         setLayout(R.layout.device_activity);
@@ -107,7 +96,7 @@ public class DeviceActivity extends BaseActivity {
         //mBitmapList.add(R.drawable.logo_github16);
 
         ContextWrapper cw = new ContextWrapper(getApplicationContext());
-        File directory = cw.getDir(BITMAP_DIRECTORY, Context.MODE_PRIVATE);
+        directory = cw.getDir(BITMAP_DIRECTORY, Context.MODE_PRIVATE);
 
         Log.i(TAG, "directory : " + directory.exists());
 
@@ -121,27 +110,26 @@ public class DeviceActivity extends BaseActivity {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+            mBitmapList.add(new BitmapObj(bm, "github.bmp"));
         }
-
-        mBitmapList.add(new BitmapObj(BitmapFactory.decodeResource(getResources(), R.drawable.ic_control_point), R.drawable.ic_control_point));
 
         // specify an adapter (see also next example)
         mAdapter = new BitmapAdapter(this, mBitmapList, new IViewHolderClickListener() {
             @Override
-            public void onClick(View v, int ressourceId) {
+            public void onClick(View v) {
 
-                if (ressourceId == R.drawable.ic_control_point) {
-                    mExitOnBrowse = true;
-                    showFileChooser();
+            }
+        }, new IViewHolderLongClickListener() {
+            @Override
+            public void onClick(View v, BitmapObj bm, boolean remove) {
+                if (!remove) {
+                    mDeleteBitmapList.add(bm);
+                    deleteMenuItem.setVisible(true);
                 } else {
-                    /*
-                    InputStream is = getResources().openRawResource(R.raw.github_reverse_compressed4096);
-                    try {
-                        mDisplayDevice.sendBitmapEncodedBitmask(readFully(is));
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                    mDeleteBitmapList.remove(bm);
+                    if (mDeleteBitmapList.size() == 0) {
+                        deleteMenuItem.setVisible(false);
                     }
-                    */
                 }
             }
         });
@@ -341,40 +329,14 @@ public class DeviceActivity extends BaseActivity {
         }
     }
 
-    private void performCrop(Uri picUri) {
-        try {
-
-            Intent cropIntent = new Intent("com.android.camera.action.CROP");
-            // indicate image type and Uri
-            cropIntent.setDataAndType(picUri, "image/*");
-            // set crop properties
-            cropIntent.putExtra("crop", "true");
-            // indicate aspect of desired crop
-            cropIntent.putExtra("aspectX", 1);
-            cropIntent.putExtra("aspectY", 1);
-            // indicate output X and Y
-            cropIntent.putExtra("outputX", 128);
-            cropIntent.putExtra("outputY", 128);
-            // retrieve data on return
-            cropIntent.putExtra("return-data", true);
-            // start the activity - we handle returning in onActivityResult
-            startActivityForResult(cropIntent, PIC_CROP);
-        }
-        // respond to users whose devices do not support the crop action
-        catch (ActivityNotFoundException anfe) {
-            // display an error message
-            String errorMessage = "Whoops - your device doesn't support the crop action!";
-            Toast toast = Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT);
-            toast.show();
-        }
-    }
-
     @Override
     protected void onResume() {
         super.onResume();
+        if (!mExitOnBrowse) {
+            createProgressConnect();
+            triggerNewScan();
+        }
         mExitOnBrowse = false;
-        createProgressConnect();
-        triggerNewScan();
     }
 
 
@@ -419,45 +381,6 @@ public class DeviceActivity extends BaseActivity {
         }
     }
 
-    private static final int FILE_SELECT_CODE = 0;
-
-    private void showFileChooser() {
-        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        intent.setType("*/*");
-        intent.addCategory(Intent.CATEGORY_OPENABLE);
-
-        try {
-            startActivityForResult(
-                    Intent.createChooser(intent, "Select a File to Upload"),
-                    FILE_SELECT_CODE);
-        } catch (android.content.ActivityNotFoundException ex) {
-            // Potentially direct the user to the Market with a Dialog
-            Toast.makeText(this, "Please install a File Manager.",
-                    Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    public static String getPath(Context context, Uri uri) throws URISyntaxException {
-        if ("content".equalsIgnoreCase(uri.getScheme())) {
-            String[] projection = {"_data"};
-            Cursor cursor = null;
-
-            try {
-                cursor = context.getContentResolver().query(uri, projection, null, null, null);
-                int column_index = cursor.getColumnIndexOrThrow("_data");
-                if (cursor.moveToFirst()) {
-                    return cursor.getString(column_index);
-                }
-            } catch (Exception e) {
-                // Eat it
-            }
-        } else if ("file".equalsIgnoreCase(uri.getScheme())) {
-            return uri.getPath();
-        }
-
-        return null;
-    }
-
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 
@@ -472,90 +395,38 @@ public class DeviceActivity extends BaseActivity {
             } else {
                 Toast.makeText(this, getResources().getString(R.string.toast_bluetooth_disabled), Toast.LENGTH_SHORT).show();
             }
-        } else if (requestCode == FILE_SELECT_CODE) {
+        } else if ((requestCode == REQUEST_PICTURE) && (resultCode == RESULT_OK)) {
 
-            if (resultCode == RESULT_OK) {
-                // Get the Uri of the selected file
-                Uri uri = data.getData();
-                Log.d(TAG, "File Uri: " + uri.toString());
-                performCrop(uri);
-                /*
-                try {
-                    InputStream input = getContentResolver().openInputStream(uri);
-                    Bitmap bmp = BitmapFactory.decodeStream(input);
+            mSavedImage = new RandomGen(20).nextString();
 
-                    bmp = Bitmap.createScaledBitmap(bmp, 128, 160, true);
-                    Log.i(TAG, "bmp size : " + bmp.getByteCount());
-                    int bytes = bmp.getByteCount();
-                    ByteBuffer buffer = ByteBuffer.allocate(bytes); //Create a new buffer
-                    bmp.copyPixelsToBuffer(buffer); //Move the byte data to the buffer
+            File croppedImageFile = new File(getFilesDir(), mSavedImage + ".jpg");
 
-                    byte[] bitmapData = new byte[128 * 160 * 2];
+            // When the user is done picking a picture, let's start the CropImage Activity,
+            // setting the output image file and size to 200x200 pixels square.
+            Uri croppedImage = Uri.fromFile(croppedImageFile);
 
-                    switch (bmp.getConfig()) {
-                        case RGB_565:
-                            break;
-                        case ARGB_8888:
-                            byte[] bitmapOldData = buffer.array();
-                            int index = 0;
-                            for (int i = 0; i < bitmapOldData.length; i++) {
-                                i++;
-                                bitmapData[index++] = (byte) (((bitmapOldData[i + 1] & 0x1F) << 3) + ((bitmapOldData[i + 2] & 0x3F) >> 3));
-                                bitmapData[index++] = (byte) (((bitmapOldData[i + 2] & 0x3F) << 5) + ((bitmapOldData[i + 3] & 0x1F)));
-                                i += 3;
-                            }
-                            Log.i(TAG, "new size : " + bitmapData.length);
-                            break;
-                        case ARGB_4444:
-                            break;
-                        case ALPHA_8:
-                            break;
-                    }
+            CropImageIntentBuilder cropImage = new CropImageIntentBuilder(128, 160, croppedImage);
+            cropImage.setOutlineColor(0xFF03A9F4);
+            cropImage.setSourceImage(data.getData());
 
-                    Log.i(TAG, "saving imported image");
+            startActivityForResult(cropImage.getIntent(this), REQUEST_CROP_PICTURE);
+        } else if ((requestCode == REQUEST_CROP_PICTURE) && (resultCode == RESULT_OK)) {
 
-                    saveToInternalStorage(bmp, getFileName(uri), BITMAP_DIRECTORY);
+            File croppedImageFile = new File(getFilesDir(), mSavedImage + ".jpg");
 
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                */
-            }
-        } else if (requestCode == PIC_CROP) {
-            if (data != null) {
-                // get the returned data
-                Bundle extras = data.getExtras();
-                // get the cropped bitmap
-                Bitmap selectedBitmap = extras.getParcelable("data");
+            Bitmap bm = BitmapFactory.decodeFile(croppedImageFile.getAbsolutePath());
 
-                //imgView.setImageBitmap(selectedBitmap);
-            }
-        }
-    }
-
-    public String getFileName(Uri uri) {
-        String result = null;
-        if (uri.getScheme().equals("content")) {
-            Cursor cursor = getContentResolver().query(uri, null, null, null, null);
             try {
-                if (cursor != null && cursor.moveToFirst()) {
-                    result = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
-                }
-            } finally {
-                cursor.close();
+                saveToInternalStorage(bm, croppedImageFile.getName(), BITMAP_DIRECTORY);
+            } catch (IOException e) {
+                e.printStackTrace();
             }
+
+            mBitmapList.add(new BitmapObj(bm, mSavedImage + ".jpg"));
+            mAdapter.notifyDataSetChanged();
         }
-        if (result == null) {
-            result = uri.getPath();
-            int cut = result.lastIndexOf('/');
-            if (cut != -1) {
-                result = result.substring(cut + 1);
-            }
-        }
-        return result;
     }
+
 
     private String saveToInternalStorage(Bitmap bitmapImage, String fileName, String directoryName) throws IOException {
         ContextWrapper cw = new ContextWrapper(getApplicationContext());
@@ -585,7 +456,7 @@ public class DeviceActivity extends BaseActivity {
             for (int i = 0; i < file.length; i++) {
                 Log.d("Files", "FileName:" + file[i].getName());
                 Bitmap b = BitmapFactory.decodeStream(new FileInputStream(file[i]));
-                mBitmapList.add(new BitmapObj(b, 0));
+                mBitmapList.add(new BitmapObj(b, file[i].getName()));
             }
             return file.length;
         } catch (FileNotFoundException e) {

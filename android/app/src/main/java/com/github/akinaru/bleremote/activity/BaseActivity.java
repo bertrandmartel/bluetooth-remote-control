@@ -28,6 +28,7 @@ import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -38,7 +39,13 @@ import android.widget.Toast;
 import com.github.akinaru.bleremote.R;
 import com.github.akinaru.bleremote.inter.IRemoteActivity;
 import com.github.akinaru.bleremote.menu.MenuUtils;
+import com.github.akinaru.bleremote.model.BitmapObj;
 import com.github.akinaru.bleremote.service.BleDisplayRemoteService;
+import com.github.akinaru.bleremote.utils.MediaStoreUtils;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Abstract activity for all activities in Bluetooth LE Analyzer
@@ -73,7 +80,6 @@ public abstract class BaseActivity extends AppCompatActivity implements IRemoteA
     protected NavigationView nvDrawer;
 
     /**
-     * BlBBBdfbdfbdqsdqsd
      * bluetooth analyzer service
      */
     protected BleDisplayRemoteService mService = null;
@@ -93,6 +99,8 @@ public abstract class BaseActivity extends AppCompatActivity implements IRemoteA
      */
     protected BluetoothAdapter mBluetoothAdapter = null;
 
+    protected MenuItem deleteMenuItem;
+
     /**
      * set activity ressource id
      *
@@ -101,6 +109,19 @@ public abstract class BaseActivity extends AppCompatActivity implements IRemoteA
     protected void setLayout(int resId) {
         layoutId = resId;
     }
+
+    public static int REQUEST_PICTURE = 4;
+    public static int REQUEST_CROP_PICTURE = 5;
+
+    protected boolean mExitOnBrowse = false;
+
+    protected List<BitmapObj> mBitmapList = new ArrayList<>();
+    protected List<BitmapObj> mDeleteBitmapList = new ArrayList<>();
+
+    protected RecyclerView mBitmapRecyclerView;
+    protected RecyclerView.Adapter mAdapter;
+
+    protected File directory;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -212,6 +233,45 @@ public abstract class BaseActivity extends AppCompatActivity implements IRemoteA
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         this.getMenuInflater().inflate(R.menu.toolbar_menu, menu);
+
+        //clear button
+        MenuItem item = menu.findItem(R.id.add_image);
+        if (item != null) {
+            item.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+
+                @Override
+                public boolean onMenuItemClick(MenuItem item) {
+                    mExitOnBrowse = true;
+                    startActivityForResult(MediaStoreUtils.getPickImageIntent(BaseActivity.this), REQUEST_PICTURE);
+                    return true;
+                }
+            });
+        }
+
+        deleteMenuItem = menu.findItem(R.id.delete_image);
+        if (deleteMenuItem != null) {
+            deleteMenuItem.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+
+                @Override
+                public boolean onMenuItemClick(MenuItem item) {
+                    //delete
+                    for (int i = 0; i < mDeleteBitmapList.size(); i++) {
+                        mBitmapList.remove(mDeleteBitmapList.get(i));
+                        File file = new File(directory, mDeleteBitmapList.get(i).getFileName());
+                        file.delete();
+                    }
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            mAdapter.notifyDataSetChanged();
+                        }
+                    });
+
+                    return true;
+                }
+            });
+        }
+
         return super.onCreateOptionsMenu(menu);
     }
 }
