@@ -28,5 +28,5 @@ import android.widget.ImageView;
  */
 public interface IViewHolderClickListener {
 
-    void onClick(View v, int ressourceId);
+    void onClick(View v);
 }

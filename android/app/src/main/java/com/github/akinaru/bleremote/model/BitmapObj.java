@@ -9,18 +9,18 @@ public class BitmapObj {
 
     private Bitmap bitmap;
 
-    private int ressourceId;
+    private String fileName;
 
-    public BitmapObj(Bitmap bitmap, int ressourceId) {
+    public BitmapObj(Bitmap bitmap, String fileName) {
+        this.fileName = fileName;
         this.bitmap = bitmap;
-        this.ressourceId = ressourceId;
     }
 
     public Bitmap getBitmap() {
         return bitmap;
     }
 
-    public int getRessourceId() {
-        return ressourceId;
+    public String getFileName() {
+        return fileName;
     }
 }

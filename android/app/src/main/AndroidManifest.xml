@@ -33,6 +33,9 @@
             </intent-filter>
 
         </activity>
+
+        <!-- Declare the bundled CropImage Activity -->
+        <activity android:name="com.android.camera.CropImage"/>
     </application>
 
 </manifest>

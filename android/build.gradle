@@ -4,7 +4,7 @@ buildscript {
     repositories {
         jcenter()
         maven {
-            url  "http://dl.bintray.com/dasar/maven"
+            url "http://dl.bintray.com/dasar/maven"
         }
     }
 
@@ -20,7 +20,10 @@ allprojects {
     repositories {
         jcenter()
         maven {
-            url  "http://dl.bintray.com/dasar/maven"
+            url "http://dl.bintray.com/dasar/maven"
+        }
+        maven {
+            url 'http://lorenzo.villani.me/android-cropimage/'
         }
     }
 }
