@@ -105,7 +105,7 @@ public class ScanItemArrayAdapter extends RecyclerView.Adapter<ScanItemArrayAdap
 
         @Override
         public void onClick(View v) {
-            mListener.onClick(v);
+            mListener.onClick(v,null);
         }
     }
 }

@@ -39,6 +39,15 @@ import java.util.concurrent.ScheduledExecutorService;
  */
 public class BleDisplayRemoteService extends Service {
 
+    /**
+     * load native module entry point
+     */
+    static {
+        System.loadLibrary("bleremote");
+    }
+
+    public static native int pack(String inputFile, String outputFile);
+
     private String TAG = BleDisplayRemoteService.class.getSimpleName();
 
     /**
