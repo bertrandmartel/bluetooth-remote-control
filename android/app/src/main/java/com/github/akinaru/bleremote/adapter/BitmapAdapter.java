@@ -103,7 +103,7 @@ public class BitmapAdapter extends RecyclerView.Adapter<BitmapAdapter.ViewHolder
         @Override
         public void onClick(View v) {
             if (!mSelected) {
-                mListener.onClick(v);
+                mListener.onClick(v, bitmapObj);
             } else {
                 bitmap.setAlpha(1f);
                 checkBitmap.setVisibility(View.GONE);

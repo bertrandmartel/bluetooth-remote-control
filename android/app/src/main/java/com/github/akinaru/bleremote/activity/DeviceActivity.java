@@ -11,11 +11,13 @@ import android.content.ServiceConnection;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.Matrix;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageButton;
@@ -41,6 +43,7 @@ import com.github.akinaru.bleremote.model.Led;
 import com.github.akinaru.bleremote.service.BleDisplayRemoteService;
 import com.github.akinaru.bleremote.utils.RandomGen;
 
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -48,6 +51,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 
 import uz.shift.colorpicker.LineColorPicker;
@@ -78,7 +82,17 @@ public class DeviceActivity extends BaseActivity {
 
     private final static String BITMAP_DIRECTORY = "bitmap";
 
+    private final static String TMP_DIRECTORY = "tmp";
+
     private String mSavedImage;
+    
+    protected Bitmap flip(Bitmap d) {
+        Matrix m = new Matrix();
+        m.preScale(-1, 1);
+        Bitmap dst = Bitmap.createBitmap(d, 0, 0, d.getWidth(), d.getHeight(), m, false);
+        dst.setDensity(DisplayMetrics.DENSITY_DEFAULT);
+        return dst;
+    }
 
     protected void onCreate(Bundle savedInstanceState) {
         setLayout(R.layout.device_activity);
@@ -93,8 +107,6 @@ public class DeviceActivity extends BaseActivity {
         // use a linear layout manager
         mBitmapRecyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
 
-        //mBitmapList.add(R.drawable.logo_github16);
-
         ContextWrapper cw = new ContextWrapper(getApplicationContext());
         directory = cw.getDir(BITMAP_DIRECTORY, Context.MODE_PRIVATE);
 
@@ -104,7 +116,15 @@ public class DeviceActivity extends BaseActivity {
 
         if (size == 0) {
             Log.i(TAG, "saving default image");
-            Bitmap bm = BitmapFactory.decodeResource(getResources(), R.drawable.logo_github16);
+            Bitmap bm = BitmapFactory.decodeResource(getResources(), R.raw.logo_github_default);
+            bm = Bitmap.createScaledBitmap(bm, 128, 160, false);
+
+            int bytes = bm.getByteCount();
+            Log.i(TAG, "byte count => " + bytes);
+
+            ByteBuffer buffer = ByteBuffer.allocate(bytes);
+            bm.copyPixelsToBuffer(buffer);
+
             try {
                 saveToInternalStorage(bm, "github.bmp", BITMAP_DIRECTORY);
             } catch (IOException e) {
@@ -115,8 +135,69 @@ public class DeviceActivity extends BaseActivity {
 
         // specify an adapter (see also next example)
         mAdapter = new BitmapAdapter(this, mBitmapList, new IViewHolderClickListener() {
+
             @Override
-            public void onClick(View v) {
+            public void onClick(View v, BitmapObj bm) {
+
+                Bitmap bmp = bm.getBitmap();
+                int bytes = bmp.getByteCount();
+                ByteBuffer buffer = ByteBuffer.allocate(bytes);
+                bmp.copyPixelsToBuffer(buffer);
+                byte[] array = buffer.array();
+
+                byte[] bitmapData = new byte[128 * 160 * 2];
+
+                switch (bmp.getConfig()) {
+                    case RGB_565:
+                        bitmapData = buffer.array();
+                        break;
+                    case ARGB_8888:
+                        Bitmap converted = bmp.copy(Bitmap.Config.RGB_565, false);
+                        converted = flip(converted);
+                        ByteBuffer buffer2 = ByteBuffer.allocate(converted.getByteCount());
+                        converted.copyPixelsToBuffer(buffer2);
+                        bitmapData = buffer2.array();
+                        break;
+                    case ARGB_4444:
+                        break;
+                    case ALPHA_8:
+                        break;
+                }
+
+                String inputPath = "";
+
+                ContextWrapper cw = new ContextWrapper(getApplicationContext());
+                File directory = cw.getDir(TMP_DIRECTORY, Context.MODE_PRIVATE);
+                File outputFile = new File(directory, "tmp_output_file");
+                if (outputFile.exists()) {
+                    outputFile.delete();
+                }
+
+                try {
+                    //inputPath = saveToInternalStorage(bitmapData, "tmp_input_file", TMP_DIRECTORY);
+                    inputPath = saveToInternalStorage(bitmapData, "tmp_input_file", TMP_DIRECTORY);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                Log.i(TAG, "from path : " + inputPath + " to " + outputFile.getAbsolutePath());
+
+                int ret = BleDisplayRemoteService.pack(inputPath, outputFile.getAbsolutePath());
+
+                Log.i(TAG, "fastlz pack result : " + ret);
+
+                File file = new File(outputFile.getAbsolutePath());
+                byte[] data = new byte[(int) file.length()];
+                try {
+                    new FileInputStream(file).read(data);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+
+                Log.i(TAG, "data.pack => " + data.length + " for " + file.length());
+
+                mDisplayDevice.sendBitmapEncodedBitmask(data);
 
             }
         }, new IViewHolderLongClickListener() {
@@ -446,6 +527,23 @@ public class DeviceActivity extends BaseActivity {
             fos.close();
         }
         return directory.getAbsolutePath();
+    }
+
+    private String saveToInternalStorage(byte[] data, String fileName, String directoryName) throws IOException {
+        ContextWrapper cw = new ContextWrapper(getApplicationContext());
+        // path to /data/data/yourapp/app_data/imageDir
+        File directory = cw.getDir(directoryName, Context.MODE_PRIVATE);
+        // Create imageDir
+        File mypath = new File(directory, fileName);
+        if (mypath.exists()) {
+            mypath.delete();
+        }
+        BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(mypath));
+        bos.write(data);
+        bos.flush();
+        bos.close();
+
+        return mypath.getAbsolutePath();
     }
 
     private int loadImageFromStorage(String path) {
