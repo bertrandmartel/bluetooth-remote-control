@@ -344,6 +344,17 @@ static void dispatch_transmit_status(uint8_t transmit_status) {
     }
 }
 
+void clean_complete() {
+
+    expecting_length = 0;
+    transmit_state = TRANSMIT_COMPLETE;
+    image_index = 0;
+    transmit_init = false;
+    pstorage_clear(&pstorage_handle, 40 * 1024);
+    //send TRANSMIT_COMPLETE
+    dispatch_transmit_status(TRANSMIT_COMPLETE);
+}
+
 static void bitmap_handler(ble_displays_t * p_dis, ble_gatts_evt_write_t * p_evt_write) {
 
     SEGGER_RTT_printf(0, "\x1B[32mbitmap handler\x1B[0m\n");
@@ -479,6 +490,15 @@ static void bitmap_handler(ble_displays_t * p_dis, ble_gatts_evt_write_t * p_evt
 
             }
         }
+    }
+    else if (transmit_state == TRANSMIT_CANCEL) {
+
+        frame_offset = 0;
+        free(image_part);
+        image_part = 0;
+        free(image_part2);
+        image_part2 = 0;
+        clean_complete();
     }
 }
 
@@ -845,17 +865,6 @@ static void power_manage(void)
 {
     uint32_t err_code = sd_app_evt_wait();
     APP_ERROR_CHECK(err_code);
-}
-
-void clean_complete() {
-
-    expecting_length = 0;
-    transmit_state = TRANSMIT_COMPLETE;
-    image_index = 0;
-    transmit_init = false;
-    pstorage_clear(&pstorage_handle, 40 * 1024);
-    //send TRANSMIT_COMPLETE
-    dispatch_transmit_status(TRANSMIT_COMPLETE);
 }
 
 /**
