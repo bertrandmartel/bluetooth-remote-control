@@ -71,6 +71,7 @@ $(abspath $(NRF51_SDK_DIR)/components/drivers_ext/segger_rtt/SEGGER_RTT_printf.c
 $(abspath adafruit-oled-st7735/src/common.c) \
 $(abspath adafruit-oled-st7735/src/adafruit1_8_oled_library.c) \
 $(abspath fastlz/fastlz.c) \
+$(abspath src/unpack.c) \
 $(abspath src/main.c)
 
 #assembly files common to all targets
