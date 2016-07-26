@@ -30,6 +30,7 @@ import com.github.akinaru.bleremote.bluetooth.listener.IPushListener;
 import com.github.akinaru.bleremote.inter.IBleDisplayRemoteDevice;
 import com.github.akinaru.bleremote.inter.IButtonListener;
 import com.github.akinaru.bleremote.inter.IDirectionPadListener;
+import com.github.akinaru.bleremote.inter.IProgressListener;
 import com.github.akinaru.bleremote.model.Button;
 import com.github.akinaru.bleremote.model.ButtonState;
 import com.github.akinaru.bleremote.model.DpadState;
@@ -82,6 +83,9 @@ public class BleDisplayDevice extends BluetoothDeviceAbstr implements IBleDispla
     private long dateProcessBegin = 0;
     private int failCount = 0;
     private int frameNumToSend = 0;
+
+    private IProgressListener progressListener;
+    private boolean stopUpload = false;
 
     /*
          * Creates a new pool of Thread objects for the download work queue
@@ -145,6 +149,9 @@ public class BleDisplayDevice extends BluetoothDeviceAbstr implements IBleDispla
                                 break;
                             case TRANSMIT_COMPLETE:
                                 Log.i(TAG, "received TRANSMIT_COMPLETE");
+                                if (progressListener != null) {
+                                    progressListener.onComplete();
+                                }
                                 clearBimapInfo();
                                 break;
                         }
@@ -297,6 +304,11 @@ public class BleDisplayDevice extends BluetoothDeviceAbstr implements IBleDispla
                         */
                     }
                 }, true);
+
+                if (progressListener != null) {
+                    progressListener.onProgress((sendIndex * 100) / sendingNum);
+                }
+
                 Log.i(TAG, "sending... : " + sendIndex + "/" + sendingNum + " : " +
                         (data[0] & 0xFF) + ";" +
                         (data[1] & 0xFF) + ";" +
@@ -318,7 +330,7 @@ public class BleDisplayDevice extends BluetoothDeviceAbstr implements IBleDispla
                         (data[17] & 0xFF));
                 frameNumToSend--;
 
-                if (frameNumToSend != 0) {
+                if (frameNumToSend != 0 && !stopUpload) {
                     sendBitmapSequence();
                 }
             } else {
@@ -329,7 +341,7 @@ public class BleDisplayDevice extends BluetoothDeviceAbstr implements IBleDispla
                     //Log.i(TAG, "index : " + sendingNum + " from " + (sendingNum * SENDING_BUFFER_MAX_LENGTH) + " to " + (sendingNum * SENDING_BUFFER_MAX_LENGTH + remainNum) + " with length of " + bitmapData.length);
                     byte[] data = Arrays.copyOfRange(bitmapData, sendingNum * SENDING_BUFFER_MAX_LENGTH, sendingNum * SENDING_BUFFER_MAX_LENGTH + remainNum);
 
-                    Log.i(TAG,"sending : " + data.length);
+                    Log.i(TAG, "sending : " + data.length);
 
                     conn.writeCharacteristic(SERVICE_BUTTON, BITMAP, data, new IPushListener() {
                         @Override
@@ -350,8 +362,12 @@ public class BleDisplayDevice extends BluetoothDeviceAbstr implements IBleDispla
                         }
                     }, true);
 
-                    Log.i(TAG,"frameNumToSend : " + frameNumToSend);
+                    Log.i(TAG, "frameNumToSend : " + frameNumToSend);
                     Log.i(TAG, "completly finished in " + (new Date().getTime() - dateProcessBegin) + "ms - fail : " + failCount + " packet count : " + sendingNum);
+
+                    if (progressListener != null) {
+                        progressListener.onFinishUpload();
+                    }
                 }
             }
         } else {
@@ -372,6 +388,10 @@ public class BleDisplayDevice extends BluetoothDeviceAbstr implements IBleDispla
         stopProcessingBitmap = false;
         dateProcessBegin = new Date().getTime();
         failCount = 0;
+
+        if (progressListener != null) {
+            progressListener.onProgress(0);
+        }
 
         conn.writeCharacteristic(SERVICE_BUTTON, TRANSMIT_STATUS, new byte[]{(byte) TransmitState.TRANSMITTING.ordinal()}, new IPushListener() {
             @Override
@@ -395,7 +415,9 @@ public class BleDisplayDevice extends BluetoothDeviceAbstr implements IBleDispla
                     }
                 }, true);
                 frameNumToSend = 127;
-                sendBitmapSequence();
+                if (!stopUpload) {
+                    sendBitmapSequence();
+                }
             }
         }, false);
     }
@@ -406,7 +428,29 @@ public class BleDisplayDevice extends BluetoothDeviceAbstr implements IBleDispla
     }
 
     @Override
-    public void sendBitmapEncodedBitmask(final byte[] bitmapData) {
+    public void sendBitmapEncodedBitmask(final byte[] bitmapData, IProgressListener listener) {
+        this.progressListener = listener;
+        stopUpload = false;
         sendBitmap(bitmapData);
+    }
+
+    @Override
+    public void cancelBitmap() {
+        stopUpload = true;
+        conn.writeCharacteristic(SERVICE_BUTTON, TRANSMIT_STATUS, new byte[]{(byte) TransmitState.TRANSMIT_CANCEL.ordinal()}, new IPushListener() {
+            @Override
+            public void onPushFailure() {
+                Log.e(TAG, "error happenend setting transmit status");
+            }
+
+            @Override
+            public void onPushSuccess() {
+
+            }
+        }, false);
+        if (progressListener != null) {
+            progressListener.onFinishUpload();
+            progressListener.onComplete();
+        }
     }
 }
