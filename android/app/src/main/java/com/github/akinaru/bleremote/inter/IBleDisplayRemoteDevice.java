@@ -20,4 +20,6 @@ public interface IBleDisplayRemoteDevice {
     void sendBitmapEncodedBitmask(final byte[] bitmapData, IProgressListener progressListener);
 
     void cancelBitmap();
+
+    boolean isUploading();
 }

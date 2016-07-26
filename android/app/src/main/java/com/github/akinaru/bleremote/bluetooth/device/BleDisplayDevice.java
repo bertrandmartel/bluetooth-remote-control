@@ -86,6 +86,7 @@ public class BleDisplayDevice extends BluetoothDeviceAbstr implements IBleDispla
 
     private IProgressListener progressListener;
     private boolean stopUpload = false;
+    private boolean mUploading = false;
 
     /*
          * Creates a new pool of Thread objects for the download work queue
@@ -153,6 +154,7 @@ public class BleDisplayDevice extends BluetoothDeviceAbstr implements IBleDispla
                                     progressListener.onComplete();
                                 }
                                 clearBimapInfo();
+                                mUploading = false;
                                 break;
                         }
                     }
@@ -393,7 +395,7 @@ public class BleDisplayDevice extends BluetoothDeviceAbstr implements IBleDispla
             progressListener.onProgress(0);
         }
 
-        conn.writeCharacteristic(SERVICE_BUTTON, TRANSMIT_STATUS, new byte[]{(byte) TransmitState.TRANSMITTING.ordinal()}, new IPushListener() {
+        conn.writeCharacteristic(SERVICE_BUTTON, TRANSMIT_STATUS, new byte[]{(byte) TransmitState.TRANSMIT_START.ordinal()}, new IPushListener() {
             @Override
             public void onPushFailure() {
                 Log.e(TAG, "error happenend setting transmit status");
@@ -429,9 +431,14 @@ public class BleDisplayDevice extends BluetoothDeviceAbstr implements IBleDispla
 
     @Override
     public void sendBitmapEncodedBitmask(final byte[] bitmapData, IProgressListener listener) {
-        this.progressListener = listener;
-        stopUpload = false;
-        sendBitmap(bitmapData);
+        if (!mUploading) {
+            this.progressListener = listener;
+            stopUpload = false;
+            mUploading = true;
+            sendBitmap(bitmapData);
+        } else {
+            Log.e(TAG, "already uploading...");
+        }
     }
 
     @Override
@@ -452,5 +459,10 @@ public class BleDisplayDevice extends BluetoothDeviceAbstr implements IBleDispla
             progressListener.onFinishUpload();
             progressListener.onComplete();
         }
+    }
+
+    @Override
+    public boolean isUploading() {
+        return mUploading;
     }
 }

@@ -125,6 +125,7 @@ public class DeviceActivity extends BaseActivity {
         mProgressDialog = new Dialog(this);
         mProgressDialog.setContentView(R.layout.progress);
         mProgressDialog.setTitle("");
+        mProgressDialog.setCancelable(false);
 
         mProgressBar = (ProgressBar) mProgressDialog.findViewById(R.id.progressbar);
         mProgressionTv = (TextView) mProgressDialog.findViewById(R.id.progression);
@@ -268,11 +269,15 @@ public class DeviceActivity extends BaseActivity {
             @Override
             public void onClick(View v, BitmapObj bm) {
 
+                if (mDisplayDevice != null && mDisplayDevice.isUploading()) {
+                    Log.e(TAG, "error already uploading");
+                    return;
+                }
+
                 Bitmap bmp = bm.getBitmap();
                 int bytes = bmp.getByteCount();
                 ByteBuffer buffer = ByteBuffer.allocate(bytes);
                 bmp.copyPixelsToBuffer(buffer);
-                byte[] array = buffer.array();
 
                 byte[] bitmapData = new byte[128 * 160 * 2];
 

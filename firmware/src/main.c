@@ -329,8 +329,18 @@ static void full_color_handler(ble_displays_t * p_dis, uint8_t red, uint8_t gree
 }
 
 static void transmit_status_handler(ble_displays_t * p_dis, uint8_t transmit_status) {
-    SEGGER_RTT_printf(0, "\x1B[32mset transmit status to : %s\x1B[0m\n", TRANSMIT_STATUS_STRING_ENUM[transmit_status]);
-    transmit_state = transmit_status;
+
+    if ( transmit_status == TRANSMITTING) {
+        if (transmit_state != TRANSMIT_CANCEL) {
+            transmit_state = TRANSMITTING;
+        }
+    }
+    else {
+        transmit_state = transmit_status;
+    }
+
+    SEGGER_RTT_printf(0, "\x1B[32mset transmit status to : %s\x1B[0m\n", TRANSMIT_STATUS_STRING_ENUM[transmit_state]);
+
 }
 
 static void dispatch_transmit_status(uint8_t transmit_status) {
@@ -359,7 +369,7 @@ static void bitmap_handler(ble_displays_t * p_dis, ble_gatts_evt_write_t * p_evt
 
     SEGGER_RTT_printf(0, "\x1B[32mbitmap handler\x1B[0m\n");
 
-    if (transmit_state == TRANSMITTING) {
+    if ((transmit_state == TRANSMITTING) || (transmit_state == TRANSMIT_START)) {
 
         if (!transmit_init) {
 
@@ -493,6 +503,7 @@ static void bitmap_handler(ble_displays_t * p_dis, ble_gatts_evt_write_t * p_evt
     }
     else if (transmit_state == TRANSMIT_CANCEL) {
 
+        SEGGER_RTT_printf(0, "\x1B[32mCANCEL TRANSMISSION\x1B[0m\n");
         frame_offset = 0;
         free(image_part);
         image_part = 0;
