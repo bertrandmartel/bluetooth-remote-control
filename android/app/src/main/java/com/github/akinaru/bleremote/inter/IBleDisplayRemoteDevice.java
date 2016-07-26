@@ -17,6 +17,7 @@ public interface IBleDisplayRemoteDevice {
 
     void sendBitmapNoEncoding(final byte[] bitmapData);
 
-    void sendBitmapEncodedBitmask(final byte[] bitmapData);
-    
+    void sendBitmapEncodedBitmask(final byte[] bitmapData, IProgressListener progressListener);
+
+    void cancelBitmap();
 }

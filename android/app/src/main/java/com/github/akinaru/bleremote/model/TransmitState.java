@@ -8,7 +8,9 @@ public enum TransmitState {
     TRANSMIT_NONE(0),
     TRANSMITTING(1),
     TRANSMIT_OK(2),
-    TRANSMIT_COMPLETE(3);
+    TRANSMIT_COMPLETE(3),
+    TRANSMIT_ERROR(4),
+    TRANSMIT_CANCEL(5);
 
     private int state;
 
@@ -27,6 +29,10 @@ public enum TransmitState {
                 return TransmitState.TRANSMIT_OK;
             case 3:
                 return TransmitState.TRANSMIT_COMPLETE;
+            case 4:
+                return TransmitState.TRANSMIT_ERROR;
+            case 5:
+                return TransmitState.TRANSMIT_CANCEL;
         }
         return TransmitState.TRANSMIT_NONE;
     }

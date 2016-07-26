@@ -38,4 +38,9 @@
     <string name="menu_item_switch_data_packet_count">Switch chart data to \'packet count\'</string>
     <string name="toolbar_add_image">add image</string>
     <string name="toolbar_delete_image">delete image</string>
+    <string name="description_size">size uncompressed</string>
+    <string name="description_size_compressed">size compressed</string>
+    <string name="description_rate">compression rate</string>
+    <string name="upload_time">upload time</string>
+    <string name="unpack_time">device unpack time</string>
 </resources>

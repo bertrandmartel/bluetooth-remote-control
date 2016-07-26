@@ -1,5 +1,6 @@
 package com.github.akinaru.bleremote.activity;
 
+import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -14,14 +15,21 @@ import android.graphics.Color;
 import android.graphics.Matrix;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.ImageButton;
+import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
+import android.widget.TableLayout;
+import android.widget.TableRow;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.camera.CropImageIntentBuilder;
@@ -33,6 +41,7 @@ import com.github.akinaru.bleremote.bluetooth.listener.IPushListener;
 import com.github.akinaru.bleremote.inter.IBleDisplayRemoteDevice;
 import com.github.akinaru.bleremote.inter.IButtonListener;
 import com.github.akinaru.bleremote.inter.IDirectionPadListener;
+import com.github.akinaru.bleremote.inter.IProgressListener;
 import com.github.akinaru.bleremote.inter.IViewHolderClickListener;
 import com.github.akinaru.bleremote.inter.IViewHolderLongClickListener;
 import com.github.akinaru.bleremote.model.BitmapObj;
@@ -52,7 +61,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.TimeZone;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import uz.shift.colorpicker.LineColorPicker;
 import uz.shift.colorpicker.OnColorChangedListener;
@@ -85,13 +99,128 @@ public class DeviceActivity extends BaseActivity {
     private final static String TMP_DIRECTORY = "tmp";
 
     private String mSavedImage;
-    
+
+    private ProgressBar mProgressBar;
+    private Handler mHandler = new Handler();
+    private TextView mProgressionTv;
+    private android.widget.Button mButton;
+
+    private TextView mCompleteTv;
+
+    private int mTimeCount;
+    private Timer mTimer;
+
+    private Dialog mProgressDialog;
+
     protected Bitmap flip(Bitmap d) {
         Matrix m = new Matrix();
         m.preScale(-1, 1);
         Bitmap dst = Bitmap.createBitmap(d, 0, 0, d.getWidth(), d.getHeight(), m, false);
         dst.setDensity(DisplayMetrics.DENSITY_DEFAULT);
         return dst;
+    }
+
+    private void generateDialog(int uncompressedSize, int compressedSize) {
+
+        mProgressDialog = new Dialog(this);
+        mProgressDialog.setContentView(R.layout.progress);
+        mProgressDialog.setTitle("");
+
+        mProgressBar = (ProgressBar) mProgressDialog.findViewById(R.id.progressbar);
+        mProgressionTv = (TextView) mProgressDialog.findViewById(R.id.progression);
+
+        altTableRow(2, (TableLayout) mProgressDialog.findViewById(R.id.tablelayout));
+
+        TextView text = (TextView) mProgressDialog.findViewById(R.id.uncompressed_size_value);
+        text.setText(uncompressedSize + " octets");
+        TextView text1 = (TextView) mProgressDialog.findViewById(R.id.size_compressed_value);
+        text1.setText(compressedSize + " octets");
+
+        mCompleteTv = (TextView) mProgressDialog.findViewById(R.id.unpack_time_value);
+
+        final TextView text3 = (TextView) mProgressDialog.findViewById(R.id.upload_time_value);
+        if (uncompressedSize != 0) {
+            TextView text2 = (TextView) mProgressDialog.findViewById(R.id.compression_rate_value);
+            text2.setText((100 - (compressedSize * 100) / uncompressedSize) + " %");
+        }
+
+        mButton = (android.widget.Button) mProgressDialog.findViewById(R.id.cancel_button);
+        mButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (mProgressDialog != null) {
+                    mProgressDialog.dismiss();
+                }
+                if (mDisplayDevice != null) {
+                    mDisplayDevice.cancelBitmap();
+                }
+            }
+        });
+
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mProgressDialog.show();
+                WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
+                Window window = mProgressDialog.getWindow();
+                lp.copyFrom(window.getAttributes());
+                lp.width = WindowManager.LayoutParams.MATCH_PARENT;
+                lp.height = WindowManager.LayoutParams.WRAP_CONTENT;
+                window.setAttributes(lp);
+            }
+        });
+
+        mTimeCount = 0;
+        if (mTimer != null) {
+            mTimer.cancel();
+            mTimer.purge();
+        }
+        mTimer = new Timer();
+        mTimer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        text3.setText(formatSeconds(mTimeCount));
+                        mTimeCount++;
+                    }
+                });
+            }
+        }, 0, 1000);
+    }
+
+    private String formatSeconds(int seconds) {
+        Date d = new Date(seconds * 1000L);
+        SimpleDateFormat df = new SimpleDateFormat("HH:mm:ss"); // HH for 0-23
+        df.setTimeZone(TimeZone.getTimeZone("GMT"));
+        return df.format(d);
+    }
+
+    /**
+     * alternate colors for description rows
+     *
+     * @param alt_row
+     */
+    public void altTableRow(int alt_row, TableLayout tablelayout) {
+
+        int childViewCount = tablelayout.getChildCount();
+
+        for (int i = 0; i < childViewCount; i++) {
+            TableRow row = (TableRow) tablelayout.getChildAt(i);
+
+            for (int j = 0; j < row.getChildCount(); j++) {
+
+                TextView tv = (TextView) row.getChildAt(j);
+                if (i % alt_row != 0) {
+                    tv.setBackground(getResources().getDrawable(
+                            R.drawable.alt_row_color));
+                } else {
+                    tv.setBackground(getResources().getDrawable(
+                            R.drawable.row_color));
+                }
+            }
+        }
     }
 
     protected void onCreate(Bundle savedInstanceState) {
@@ -194,10 +323,66 @@ public class DeviceActivity extends BaseActivity {
                     e.printStackTrace();
                 }
 
-
                 Log.i(TAG, "data.pack => " + data.length + " for " + file.length());
 
-                mDisplayDevice.sendBitmapEncodedBitmask(data);
+                generateDialog(bitmapData.length, data.length);
+
+                mDisplayDevice.sendBitmapEncodedBitmask(data, new IProgressListener() {
+                    @Override
+                    public void onProgress(final int progress) {
+                        mHandler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (mProgressionTv != null && mProgressBar != null) {
+                                    mProgressionTv.setText(progress + " %");
+                                    mProgressBar.setProgress(progress);
+                                }
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onFinishUpload() {
+                        if (mButton != null) {
+                            if (mTimer != null) {
+                                mTimer.cancel();
+                                mTimer.purge();
+                            }
+                            mTimeCount = 0;
+
+                            mTimer = new Timer();
+                            mTimer.scheduleAtFixedRate(new TimerTask() {
+                                @Override
+                                public void run() {
+                                    runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            if (mCompleteTv != null) {
+                                                mCompleteTv.setText(formatSeconds(mTimeCount));
+                                            }
+                                            mTimeCount++;
+                                        }
+                                    });
+                                }
+                            }, 0, 1000);
+                        }
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        mHandler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                mButton.setText("OK");
+                            }
+                        });
+                        if (mTimer != null) {
+                            mTimer.cancel();
+                            mTimer.purge();
+                        }
+                        mTimeCount = 0;
+                    }
+                });
 
             }
         }, new IViewHolderLongClickListener() {
@@ -410,6 +595,7 @@ public class DeviceActivity extends BaseActivity {
         }
     }
 
+
     @Override
     protected void onResume() {
         super.onResume();
@@ -424,6 +610,16 @@ public class DeviceActivity extends BaseActivity {
     @Override
     protected void onPause() {
         super.onPause();
+
+        if (mProgressDialog != null) {
+            mProgressDialog.dismiss();
+        }
+
+        if (mTimer != null) {
+            mTimer.cancel();
+            mTimer.purge();
+        }
+        mTimeCount = 0;
 
         if (!mExitOnBrowse) {
             if (mService != null) {
