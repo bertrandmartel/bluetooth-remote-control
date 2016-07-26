@@ -825,12 +825,14 @@ public class DeviceActivity extends BaseActivity {
                 Log.v(TAG, "Device disconnected");
                 createProgressConnect();
                 mService.clearScanningList();
+                /*
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         triggerNewScan();
                     }
                 });
+                */
             } else if (BluetoothEvents.BT_EVENT_DEVICE_CONNECTED.equals(action)) {
                 Log.v(TAG, "Device connected");
                 Toast.makeText(DeviceActivity.this, "device connected", Toast.LENGTH_SHORT).show();
