@@ -150,64 +150,8 @@
                 android:src="@drawable/selector_nav_right" />
         </RelativeLayout>
 
-        <!--<LinearLayout-->
-        <!--android:layout_width="match_parent"-->
-        <!--android:layout_height="0dp"-->
-        <!--android:layout_weight="0.5"-->
-        <!--android:orientation="horizontal">-->
-
-        <!--<ImageButton-->
-        <!--android:id="@+id/buttons1"-->
-        <!--android:layout_width="0dp"-->
-        <!--android:layout_height="wrap_content"-->
-        <!--android:layout_weight="1"-->
-        <!--android:background="@android:color/transparent"-->
-        <!--android:scaleType="centerInside"-->
-        <!--android:src="@drawable/selector_nav_ok_unique" />-->
-
-        <!--<ImageButton-->
-        <!--android:id="@+id/buttons2"-->
-        <!--android:layout_width="0dp"-->
-        <!--android:layout_height="wrap_content"-->
-        <!--android:layout_weight="1"-->
-        <!--android:background="@android:color/transparent"-->
-        <!--android:scaleType="centerInside"-->
-        <!--android:src="@drawable/selector_nav_ok_unique" />-->
-        <!--</LinearLayout>-->
-
-        <!--<LinearLayout-->
-        <!--android:layout_width="match_parent"-->
-        <!--android:layout_height="0dp"-->
-        <!--android:layout_weight="0.5"-->
-        <!--android:orientation="horizontal">-->
-
-        <!--<ImageButton-->
-        <!--android:id="@+id/buttons3"-->
-        <!--android:layout_width="0dp"-->
-        <!--android:layout_height="wrap_content"-->
-        <!--android:layout_weight="1"-->
-        <!--android:background="@android:color/transparent"-->
-        <!--android:scaleType="centerInside"-->
-        <!--android:src="@drawable/selector_nav_ok_unique" />-->
-
-        <!--<ImageButton-->
-        <!--android:id="@+id/buttons4"-->
-        <!--android:layout_width="0dp"-->
-        <!--android:layout_height="wrap_content"-->
-        <!--android:layout_weight="1"-->
-        <!--android:background="@android:color/transparent"-->
-        <!--android:scaleType="centerInside"-->
-        <!--android:src="@drawable/selector_nav_ok_unique" />-->
-        <!--</LinearLayout>-->
-
     </LinearLayout>
-    <!--
 
-
-       !-->
-
-    <!-- The navigation drawer that comes from the left -->
-    <!-- Note that `android:layout_gravity` needs to be set to 'start' -->
     <android.support.design.widget.NavigationView
         android:id="@+id/nvView"
         android:layout_width="wrap_content"
