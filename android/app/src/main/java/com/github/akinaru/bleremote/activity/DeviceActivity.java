@@ -109,7 +109,7 @@ public class DeviceActivity extends BaseActivity {
 
     private int mTimeCount;
     private Timer mTimer;
-
+    private boolean mShouldReconnect = false;
     private Dialog mProgressDialog;
 
     protected Bitmap flip(Bitmap d) {
@@ -393,6 +393,7 @@ public class DeviceActivity extends BaseActivity {
         }, new IViewHolderLongClickListener() {
             @Override
             public void onClick(View v, BitmapObj bm, boolean remove) {
+
                 if (!remove) {
                     mDeleteBitmapList.add(bm);
                     deleteMenuItem.setVisible(true);
@@ -606,9 +607,13 @@ public class DeviceActivity extends BaseActivity {
         super.onResume();
         if (!mExitOnBrowse) {
             createProgressConnect();
-            triggerNewScan();
+            if (mService != null) {
+                mService.clearScanningList();
+                triggerNewScan();
+            }
         }
         mExitOnBrowse = false;
+        mShouldReconnect = true;
     }
 
 
@@ -625,6 +630,8 @@ public class DeviceActivity extends BaseActivity {
             mTimer.purge();
         }
         mTimeCount = 0;
+
+        mShouldReconnect = false;
 
         if (!mExitOnBrowse) {
             if (mService != null) {
@@ -828,16 +835,18 @@ public class DeviceActivity extends BaseActivity {
             if (BluetoothEvents.BT_EVENT_DEVICE_DISCONNECTED.equals(action)) {
 
                 Log.v(TAG, "Device disconnected");
-                createProgressConnect();
-                mService.clearScanningList();
-                /*
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        triggerNewScan();
-                    }
-                });
-                */
+
+                if (mShouldReconnect) {
+
+                    createProgressConnect();
+                    mService.clearScanningList();
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            triggerNewScan();
+                        }
+                    });
+                }
             } else if (BluetoothEvents.BT_EVENT_DEVICE_CONNECTED.equals(action)) {
                 Log.v(TAG, "Device connected");
                 Toast.makeText(DeviceActivity.this, "device connected", Toast.LENGTH_SHORT).show();

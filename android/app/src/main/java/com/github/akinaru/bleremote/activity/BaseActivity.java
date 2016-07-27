@@ -249,7 +249,9 @@ public abstract class BaseActivity extends AppCompatActivity implements IRemoteA
         }
 
         deleteMenuItem = menu.findItem(R.id.delete_image);
+
         if (deleteMenuItem != null) {
+
             deleteMenuItem.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
 
                 @Override
@@ -263,6 +265,7 @@ public abstract class BaseActivity extends AppCompatActivity implements IRemoteA
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
+                            mBitmapRecyclerView.setAdapter(mAdapter);
                             mAdapter.notifyDataSetChanged();
                         }
                     });
