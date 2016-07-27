@@ -11,6 +11,7 @@ import com.github.akinaru.bleremote.R;
 import com.github.akinaru.bleremote.inter.IViewHolderClickListener;
 import com.github.akinaru.bleremote.inter.IViewHolderLongClickListener;
 import com.github.akinaru.bleremote.model.BitmapObj;
+import com.github.akinaru.bleremote.utils.MediaStoreUtils;
 
 import java.util.List;
 
