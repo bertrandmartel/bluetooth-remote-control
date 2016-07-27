@@ -37,12 +37,9 @@ public class OpenSourceItemAdapter extends BaseAdapter {
 
     private static final String[][] COMPONENTS = new String[][]{
 
-            {"DiscreteSeekBar", "https://github.com/AnderWeb/discreteSeekBar"},
-            {"MPAndroidChart",
-                    "https://github.com/PhilJay/MPAndroidChart"},
-            {"nv-bluetooth", "https://github.com/TakahikoKawasaki/nv-bluetooth"},
-            {"RFDuino", "https://github.com/RFduino/RFduino"},
-            {"rfduino-makefile", "https://github.com/akinaru/rfduino-makefile"}
+            {"Simple vertical and horizontal color picker", "https://github.com/DASAR/ShiftColorPicker"},
+            {"Android CropImage", "https://github.com/lvillani/android-cropimage"},
+            {"FastLZ - lightning-fast lossless compression library", "https://github.com/ariya/FastLZ"}
     };
 
     private LayoutInflater mInflater;
