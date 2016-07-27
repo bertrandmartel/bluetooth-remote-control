@@ -132,6 +132,8 @@ bool image_part_select = false;
 
 uint8_t block_offset = 0;
 
+bool block_upload = false;
+
 //when this flag is set to 1, it means it is the final bitmap chunk to be stored before being processed
 static volatile uint8_t final_storage_bitmap_flag = 0;
 
@@ -360,6 +362,7 @@ void clean_complete() {
     transmit_state = TRANSMIT_COMPLETE;
     image_index = 0;
     transmit_init = false;
+    block_upload = true;
     pstorage_clear(&pstorage_handle, 40 * 1024);
     //send TRANSMIT_COMPLETE
     dispatch_transmit_status(TRANSMIT_COMPLETE);
@@ -369,7 +372,7 @@ static void bitmap_handler(ble_displays_t * p_dis, ble_gatts_evt_write_t * p_evt
 
     SEGGER_RTT_printf(0, "\x1B[32mbitmap handler\x1B[0m\n");
 
-    if ((transmit_state == TRANSMITTING) || (transmit_state == TRANSMIT_START)) {
+    if (!block_upload && ((transmit_state == TRANSMITTING) || (transmit_state == TRANSMIT_START))) {
 
         if (!transmit_init) {
 
@@ -957,6 +960,9 @@ static void pstorage_cb_handler(pstorage_handle_t  * handle,
         }
         break;
     case PSTORAGE_CLEAR_OP_CODE:
+
+        block_upload = false;
+
         if (result == NRF_SUCCESS)
         {
             // Clear operation successful.
