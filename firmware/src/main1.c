@@ -2117,10 +2117,10 @@ int main(void)
 
     SEGGER_RTT_printf(0, "\x1B[32mOK\x1B[0m\n");
 
-    gap_params_init();
-    hids_init();
-    services_init();
-    advertising_init();
+    //gap_params_init();
+    //hids_init();
+    //services_init();
+    //advertising_init();
     SEGGER_RTT_printf(0, "\x1B[32mOKKK\x1B[0m\n");
     conn_params_init();
     sec_params_init();

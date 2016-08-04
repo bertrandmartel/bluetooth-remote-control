@@ -44,14 +44,14 @@
 #include "ble_conn_params.h"
 #include "bsp.h"
 #include "sensorsim.h"
+#include "app_gpiote.h"
+#include "app_button.h"
 #include "bsp_btn_ble.h"
 #include "app_scheduler.h"
 #include "softdevice_handler_appsh.h"
 #include "app_timer_appsh.h"
 #include "device_manager.h"
-#include "app_button.h"
 #include "pstorage.h"
-#include "app_trace.h"
 #include "SEGGER_RTT.h"
 
 #define E(x,y) x = y,
@@ -65,9 +65,12 @@ static const char *BUTTON_STATE_STRING_ENUM[] = {
 };
 
 
-#if BUTTONS_NUMBER <2
-#error "Not enough resources on board"
-#endif
+#define APP_GPIOTE_MAX_USERS            1                                           /**< Maximum number of users of the GPIOTE handler. */
+
+#define BUTTON_S0         BSP_BUTTON_0                                /**< Button used to wake up the application. */
+#define BUTTON_S1         BSP_BUTTON_1
+#define BUTTON_S2         BSP_BUTTON_2
+#define BUTTON_S3         BSP_BUTTON_3
 
 #define IS_SRVC_CHANGED_CHARACT_PRESENT  0                                              /**< Include or not the service_changed characteristic. if not enabled, the server's database cannot be changed for the lifetime of the device*/
 
@@ -226,6 +229,8 @@ APP_TIMER_DEF(m_battery_timer_id);                                              
 static dm_application_instance_t         m_app_handle;                                  /**< Application identifier allocated by device manager. */
 static dm_handle_t                       m_bonded_peer_handle;                          /**< Device reference handle to the current bonded central. */
 static bool                              m_caps_on = false;                             /**< Variable to indicate if Caps Lock is turned on. */
+
+static bool                              m_button_pressed = false;
 
 static ble_uuid_t m_adv_uuids[] = {{BLE_UUID_HUMAN_INTERFACE_DEVICE_SERVICE, BLE_UUID_TYPE_BLE}};
 
@@ -537,7 +542,7 @@ static void hids_init(void)
         0x95, 0x06,                 //     Report Count (6)
         0x75, 0x08,                 //     Report Size (8)
         0x15, 0x00,                 //     Logical Minimum (0)
-        0x25, 0x65,                 //     Logical Maximum (101)
+        0x25, 0xFF,                 //     Logical Maximum (101)
         0x05, 0x07,                 //     Usage Page (Key codes)
         0x19, 0x00,                 //     Usage Minimum (0)
         0x29, 0x82,                 //     Usage Maximum (101)
@@ -1085,22 +1090,35 @@ static void dpad_timeout_handler(void * p_context) {
                 keys_send(1, p_key_pattern, 0);
                 break;
             }
+            case BUTTON_HOME:
+            {
+                //p_key_pattern[0] = 0x28;
+                //keys_send(1, p_key_pattern, 0x80);
+                p_key_pattern[0] = 0x4a;
+                keys_send(1, p_key_pattern, 0x00);
+                break;
+            }
+            case BUTTON_VOICE:
+            {
+                p_key_pattern[0] = 0x00;
+                keys_send(1, p_key_pattern, 0x80);
+                break;
+            }
+            case BUTTON_BACK:
+            {
+                p_key_pattern[0] = 0x29;
+                keys_send(1, p_key_pattern, 0x00);
+                break;
+            }
             case BUTTON_NONE:
             {
                 p_key_pattern[0] = 0x00;
                 keys_send(1, p_key_pattern, 0);
+                m_button_pressed = false;
                 break;
             }
             }
         }
-        /*
-        if (err_code != NRF_SUCCESS &&
-                err_code != BLE_ERROR_INVALID_CONN_HANDLE &&
-                err_code != NRF_ERROR_INVALID_STATE)
-        {
-            APP_ERROR_CHECK(err_code);
-        }
-        */
     }
 }
 
@@ -1350,7 +1368,8 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
         SEGGER_RTT_printf(0, "\x1B[32mBLE_GAP_EVT_CONNECTED\x1B[0m\n");
         err_code = bsp_indication_set(BSP_INDICATE_CONNECTED);
         APP_ERROR_CHECK(err_code);
-
+        err_code = app_button_enable();
+        APP_ERROR_CHECK(err_code);
         m_conn_handle      = p_ble_evt->evt.gap_evt.conn_handle;
         break;
 
@@ -1366,7 +1385,8 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
         (void) buffer_dequeue(false);
 
         m_conn_handle = BLE_CONN_HANDLE_INVALID;
-
+        err_code = app_button_disable();
+        APP_ERROR_CHECK(err_code);
         // Reset m_caps_on variable. Upon reconnect, the HID host will re-send the Output
         // report containing the Caps lock state.
         m_caps_on = false;
@@ -1502,10 +1522,90 @@ static void scheduler_init(void)
 }
 
 
+static void button_event_handler(uint8_t pin_no, uint8_t button_action)
+{
+    SEGGER_RTT_printf(0, "\x1B[32mbutton_event_handler\x1B[0m\n");
+
+    uint32_t err_code;
+
+    uint8_t old_state = button_state;
+
+    if (button_action == 0) {
+        SEGGER_RTT_printf(0, "\x1B[32mold_state : %s : release received for : %d\x1B[0m\n", BUTTON_STATE_STRING_ENUM[button_state], pin_no);
+
+        button_state = BUTTON_NONE;
+    }
+    else {
+
+        switch (pin_no)
+        {
+        case BUTTON_S0:
+
+            SEGGER_RTT_printf(0, "\x1B[32mbutton BUTTON_S0 : VOICE\x1B[0m\n");
+            button_state = BUTTON_VOICE;
+            m_button_pressed = true;
+            break;
+        case BUTTON_S1:
+
+            SEGGER_RTT_printf(0, "\x1B[32mbutton BUTTON_S1 : BACK\x1B[0m\n");
+            button_state = BUTTON_BACK;
+            m_button_pressed = true;
+            break;
+
+        case BUTTON_S2:
+
+            SEGGER_RTT_printf(0, "\x1B[32mbutton BUTTON_S2 : NO ACTION\x1B[0m\n");
+            break;
+
+        case BUTTON_S3:
+
+            SEGGER_RTT_printf(0, "\x1B[32mbutton BUTTON_S3 : HOME\x1B[0m\n");
+            button_state = BUTTON_HOME;
+            m_button_pressed = true;
+            break;
+        default:
+            //APP_ERROR_HANDLER(pin_no);
+            break;
+        }
+    }
+
+    if (old_state != button_state) {
+        SEGGER_RTT_printf(0, "\x1B[32mbutton state2 : %s\x1B[0m\n", BUTTON_STATE_STRING_ENUM[button_state]);
+        button_state_change = true;
+    }
+
+}
+
+/**@brief Function for initializing the GPIOTE handler module.
+ */
+static void gpiote_init(void)
+{
+    APP_GPIOTE_INIT(APP_GPIOTE_MAX_USERS);
+}
+
+
+/**@brief Function for initializing the button handler module.
+ */
+static void buttons_init(void)
+{
+    // Note: Array must be static because a pointer to it will be saved in the Button handler
+    //       module.
+    static app_button_cfg_t buttons[] =
+    {
+        {BUTTON_S0, false, BUTTON_PULL, button_event_handler},
+        {BUTTON_S1, false, BUTTON_PULL, button_event_handler},
+        {BUTTON_S2, false, BUTTON_PULL, button_event_handler},
+        {BUTTON_S3, false, BUTTON_PULL, button_event_handler}
+    };
+
+    app_button_init(buttons, sizeof(buttons) / sizeof(buttons[0]), BUTTON_DETECTION_DELAY);
+}
+
 /**@brief Function for handling events from the BSP module.
  *
  * @param[in]   event   Event generated by button press.
  */
+#if 0
 static void bsp_event_handler(bsp_event_t event)
 {
     uint32_t err_code;
@@ -1540,10 +1640,6 @@ static void bsp_event_handler(bsp_event_t event)
 
             p_key_pattern[0] = 0x00;
             keys_send(1, p_key_pattern, 0x80);
-            /*
-            p_key_pattern[0] = 0x4a;
-            keys_send(1, p_key_pattern, 0x00);
-            */
             keys_send(6, m_release_key, 0);
         }
         break;
@@ -1563,11 +1659,6 @@ static void bsp_event_handler(bsp_event_t event)
         if (m_conn_handle != BLE_CONN_HANDLE_INVALID)
         {
             SEGGER_RTT_printf(0, "\x1B[32mBSP_EVENT_KEY_2_HOME\x1B[0m\n");
-            /*
-            p_key_pattern[0] = 0x03;
-            keys_send(1, p_key_pattern, 0x00);
-            */
-
             p_key_pattern[0] = 0x28;
             keys_send(1, p_key_pattern, 0x80);
             keys_send(6, m_release_key, 0);
@@ -1577,7 +1668,7 @@ static void bsp_event_handler(bsp_event_t event)
         break;
     }
 }
-
+#endif
 
 /**@brief Function for initializing the Advertising functionality.
  */
@@ -1645,22 +1736,25 @@ void ADC_IRQHandler(void)
     uint16_t adc_result = NRF_ADC->RESULT;
     NRF_ADC->TASKS_STOP = 1;
 
-    uint8_t old_state = button_state;
+    if (!m_button_pressed)
+    {
+        uint8_t old_state = button_state;
 
-    if (button_state == BUTTON_NONE) {
-        if (adc_result < 62) button_state = BUTTON_DOWN;
-        else if (adc_result < 295) button_state = BUTTON_RIGHT;
-        else if (adc_result < 465) button_state = BUTTON_SELECT;
-        else if (adc_result < 620) button_state = BUTTON_UP;
-        else if (adc_result < 1020) button_state = BUTTON_LEFT;
-    }
-    else {
-        if (adc_result > 1020) button_state = BUTTON_NONE;
-    }
-    if (old_state != button_state) {
+        if (button_state == BUTTON_NONE) {
+            if (adc_result < 62) button_state = BUTTON_DOWN;
+            else if (adc_result < 295) button_state = BUTTON_RIGHT;
+            else if (adc_result < 465) button_state = BUTTON_SELECT;
+            else if (adc_result < 620) button_state = BUTTON_UP;
+            else if (adc_result < 1020) button_state = BUTTON_LEFT;
+        }
+        else {
+            if (adc_result > 1020) button_state = BUTTON_NONE;
+        }
+        if (old_state != button_state) {
 
-        SEGGER_RTT_printf(0, "\x1B[32mbutton state : %s\x1B[0m\n", BUTTON_STATE_STRING_ENUM[button_state]);
-        button_state_change = true;
+            SEGGER_RTT_printf(0, "\x1B[32mbutton state : %s for %d\x1B[0m\n", BUTTON_STATE_STRING_ENUM[button_state], adc_result);
+            button_state_change = true;
+        }
     }
 }
 
@@ -1708,20 +1802,22 @@ static void device_manager_init(bool erase_bonds)
  *
  * @param[out] p_erase_bonds  Will be true if the clear bonding button was pressed to wake the application up.
  */
+/*
 static void buttons_leds_init(bool * p_erase_bonds)
 {
-    bsp_event_t startup_event;
+   bsp_event_t startup_event;
 
-    uint32_t err_code = bsp_init(BSP_INIT_LED | BSP_INIT_BUTTONS,
-                                 APP_TIMER_TICKS(100, APP_TIMER_PRESCALER),
-                                 bsp_event_handler);
-    APP_ERROR_CHECK(err_code);
+   uint32_t err_code = bsp_init(BSP_INIT_LED | BSP_INIT_BUTTONS,
+                                APP_TIMER_TICKS(100, APP_TIMER_PRESCALER),
+                                bsp_event_handler);
+   APP_ERROR_CHECK(err_code);
 
-    err_code = bsp_btn_ble_init(NULL, &startup_event);
-    APP_ERROR_CHECK(err_code);
+   err_code = bsp_btn_ble_init(NULL, &startup_event);
+   APP_ERROR_CHECK(err_code);
 
-    *p_erase_bonds = (startup_event == BSP_EVENT_CLEAR_BONDING_DATA);
+   *p_erase_bonds = (startup_event == BSP_EVENT_CLEAR_BONDING_DATA);
 }
+*/
 
 
 /**@brief Function for the Power manager.
@@ -1732,6 +1828,22 @@ static void power_manage(void)
     APP_ERROR_CHECK(err_code);
 }
 
+/**
+ * @brief Function for initializing bsp module.
+ */
+
+void bsp_configuration() {
+
+    //uint32_t err_code = NRF_SUCCESS;
+
+    NRF_CLOCK->LFCLKSRC            = (CLOCK_LFCLKSRC_SRC_Xtal << CLOCK_LFCLKSRC_SRC_Pos);
+    NRF_CLOCK->EVENTS_LFCLKSTARTED = 0;
+    NRF_CLOCK->TASKS_LFCLKSTART    = 1;
+
+    while (NRF_CLOCK->EVENTS_LFCLKSTARTED == 0) {
+        // Do nothing.
+    }
+}
 
 /**@brief Function for application main entry.
  */
@@ -1740,11 +1852,14 @@ int main(void)
     bool erase_bonds;
     uint32_t err_code;
 
+    bsp_configuration();
+
     // Initialize.
-    app_trace_init();
     timers_init();
+    gpiote_init();
     adc_init();
-    buttons_leds_init(&erase_bonds);
+    buttons_init();
+    //buttons_leds_init(&erase_bonds);
     ble_stack_init();
     scheduler_init();
 
@@ -1753,7 +1868,6 @@ int main(void)
     gap_params_init();
     advertising_init();
     services_init();
-
 
     sensor_simulator_init();
     conn_params_init();

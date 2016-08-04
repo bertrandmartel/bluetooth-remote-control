@@ -38,7 +38,6 @@ remduplicates = $(strip $(if $1,$(firstword $1) $(call remduplicates,$(filter-ou
 
 
 C_SOURCE_FILES += \
-$(abspath $(NRF51_SDK_DIR)/components/libraries/button/app_button.c) \
 $(abspath $(NRF51_SDK_DIR)/components/libraries/util/app_error.c) \
 $(abspath $(NRF51_SDK_DIR)/components/libraries/util/app_error_weak.c) \
 $(abspath $(NRF51_SDK_DIR)/components/libraries/fifo/app_fifo.c) \
@@ -55,9 +54,11 @@ $(abspath $(NRF51_SDK_DIR)/components/libraries/sensorsim/sensorsim.c) \
 $(abspath $(NRF51_SDK_DIR)/components/libraries/uart/app_uart_fifo.c) \
 $(abspath $(NRF51_SDK_DIR)/components/drivers_nrf/delay/nrf_delay.c) \
 $(abspath $(NRF51_SDK_DIR)/components/drivers_nrf/common/nrf_drv_common.c) \
+$(abspath $(NRF51_SDK_DIR)/components/libraries/gpiote/app_gpiote.c) \
 $(abspath $(NRF51_SDK_DIR)/components/drivers_nrf/gpiote/nrf_drv_gpiote.c) \
 $(abspath $(NRF51_SDK_DIR)/components/drivers_nrf/uart/nrf_drv_uart.c) \
 $(abspath $(NRF51_SDK_DIR)/components/drivers_nrf/pstorage/pstorage.c) \
+$(abspath $(NRF51_SDK_DIR)/components/libraries/button/app_button.c) \
 $(abspath $(NRF51_SDK_DIR)/examples/bsp/bsp.c) \
 $(abspath $(NRF51_SDK_DIR)/examples/bsp/bsp_btn_ble.c) \
 $(abspath $(NRF51_SDK_DIR)/components/drivers_ext/segger_rtt/SEGGER_RTT.c) \
@@ -143,6 +144,7 @@ INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/libraries/uart)
 INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/libraries/button)
 INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/libraries/fstorage)
 INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/libraries/experimental_section_vars)
+INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/libraries/gpiote)
 INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/drivers_nrf/gpiote)
 INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/external/segger_rtt)
 INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/examples/bsp)
