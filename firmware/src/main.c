@@ -125,9 +125,13 @@ static const char *BUTTON_STATE_STRING_ENUM[] = {
 
 #define OUTPUT_REPORT_INDEX              0                                              /**< Index of Output Report. */
 #define OUTPUT_REPORT_MAX_LEN            1                                              /**< Maximum length of Output Report. */
+
 #define INPUT_REPORT_KEYS_INDEX          0                                              /**< Index of Input Report. */
+#define INPUT_REPORT_CONSUMER_INDEX      1                                              /**< Index of Consumer Input Report. */
+
 #define OUTPUT_REPORT_BIT_MASK_CAPS_LOCK 0x02                                           /**< CAPS LOCK bit in Output Report (based on 'LED Page (0x08)' of the Universal Serial Bus HID Usage Tables). */
 #define INPUT_REP_REF_ID                 0                                              /**< Id of reference to Keyboard Input Report. */
+#define INPUT_CONSUMER_REP_REF_ID        1                                              /**< Id of reference to Consumer control Input Report. */
 #define OUTPUT_REP_REF_ID                0                                              /**< Id of reference to Keyboard Output Report. */
 
 #define APP_FEATURE_NOT_SUPPORTED       BLE_GATT_STATUS_ATTERR_APP_BEGIN + 2            /**< Reply when unsupported features are requested. */
@@ -137,6 +141,7 @@ static const char *BUTTON_STATE_STRING_ENUM[] = {
 #define BASE_USB_HID_SPEC_VERSION        0x0101                                         /**< Version number of base USB HID Specification implemented by this application. */
 
 #define INPUT_REPORT_KEYS_MAX_LEN        8                                              /**< Maximum length of the Input Report characteristic. */
+#define INPUT_REPORT_CONSUMER_MAX_LEN    2                                              /**< Maximum length of the Consumer Input Report characteristic. */
 
 #define DEAD_BEEF                        0xDEADBEEF                                     /**< Value used as error code on stack dump, can be used to identify stack location on stack unwind. */
 
@@ -231,6 +236,7 @@ static dm_handle_t                       m_bonded_peer_handle;                  
 static bool                              m_caps_on = false;                             /**< Variable to indicate if Caps Lock is turned on. */
 
 static bool                              m_button_pressed = false;
+static bool                              m_consumer_pressed = false;
 
 static ble_uuid_t m_adv_uuids[] = {{BLE_UUID_HUMAN_INTERFACE_DEVICE_SERVICE, BLE_UUID_TYPE_BLE}};
 
@@ -468,8 +474,9 @@ static void hids_init(void)
 {
     uint32_t                   err_code;
     ble_hids_init_t            hids_init_obj;
-    ble_hids_inp_rep_init_t    input_report_array[1];
+    ble_hids_inp_rep_init_t    input_report_array[2];
     ble_hids_inp_rep_init_t  * p_input_report;
+    ble_hids_inp_rep_init_t  * p_input_consumer_report;
     ble_hids_outp_rep_init_t   output_report_array[1];
     ble_hids_outp_rep_init_t * p_output_report;
     uint8_t                    hid_info_flags;
@@ -477,97 +484,83 @@ static void hids_init(void)
     memset((void *)input_report_array, 0, sizeof(ble_hids_inp_rep_init_t));
     memset((void *)output_report_array, 0, sizeof(ble_hids_outp_rep_init_t));
 
-    /*
     static uint8_t report_map_data[] =
     {
-        0x05, 0x0c,//Usage Page (Consumer)
-        0x09, 0x01,//Usage (Keyboard)
-        0xa1, 0x01,//Collection (Application)
+        0x05, 0x01, // USAGE_PAGE (Generic Desktop)
+        0x09, 0x06, // USAGE (Keyboard)
+        0xa1, 0x01, // COLLECTION (Application)
+        0x05, 0x07, // USAGE_PAGE (Keyboard)
+        0x85, 0x01, // REPORT_ID (1)
 
-        0x15, 0x00,//     Logical Minimum (0)
-        0x25, 0x01,//     Logical Maximum (1)
+        0x19, 0xe0, // USAGE_MINIMUM (kbd LeftControl)
+        0x29, 0xe7, // USAGE_MAXIMUM (kbd Right GUI)
+        0x15, 0x00, // LOGICAL_MINIMUM (0)
+        0x25, 0x01, // LOGICAL_MAXIMUM (1)
+        0x75, 0x01, // REPORT_SIZE (1)
+        0x95, 0x08, // REPORT_COUNT (8)
+        0x81, 0x02, // INPUT (Data,Var,Abs)
+
+        0x95, 0x01, // REPORT_COUNT (1)
+        0x75, 0x08, // REPORT_SIZE (8)
+        0x81, 0x01, // INPUT (Cnst,Ary,Abs)
+
+        0x95, 0x05, // REPORT_COUNT (5)
+        0x75, 0x01, // REPORT_SIZE (1)
+        0x05, 0x08, // USAGE_PAGE (LEDs)
+        0x85, 0x01, // REPORT_ID (1)
+        0x19, 0x01, // USAGE_MINIMUM (Num Lock)
+        0x29, 0x05, // USAGE_MAXIMUM (Kana)
+        0x91, 0x02, // OUTPUT (Data,Var,Abs)
+
+        0x95, 0x01, // REPORT_COUNT (1)
+        0x75, 0x03, // REPORT_SIZE (3)
+        0x91, 0x03, // OUTPUT (Cnst,Var,Abs)
+
+        0x95, 0x06, // REPORT_COUNT (6)
+        0x75, 0x08, // REPORT_SIZE (8)
+        0x15, 0x00, // LOGICAL_MINIMUM (0)
+        0x25, 0x65, // LOGICAL_MAXIMUM (101)
+        0x05, 0x07, // USAGE_PAGE (Keyboard)
+        0x19, 0x00, // USAGE_MINIMUM (Reserved (no event indicated))
+        0x29, 0x65, // USAGE_MAXIMUM (Keyboard Application)
+        0x81, 0x00, // INPUT (Data,Ary,Abs)
+        0xc0,       // END_COLLECTION
+
+        0x05, 0x0C,  // USAGE_PAGE (Consumer Devices)
+        0x09, 0x01,  // USAGE (Consumer Control)
+        0xA1, 0x01,  // COLLECTION (Application)
+        0x85, 0x02,  //   REPORT_ID (2)
+        0x75, 0x10,  // REPORT_SIZE (16)
+        0x95, 0x01,  // REPORT_COUNT (1)
+        0x15, 0x01,  // LOGICAL_MINIMUM (0)
+        0x26, 0xFF, 0x02, // LOGICAL_MAXIMUM (1)
+        0x19, 0x01,  // USAGE_MINIMUM (Consumer Control)
+        0x2A, 0xFF, 0x02, // USAGE_MAXIMUM (Consumer Control)
+        0x81, 0x60,  // INPUT (Data,Ary,Abs,NPrf,Null)
 
 
-        0x09, 0xe9,//     Volume UP
-        0x09, 0xea,//     Volume DOWN
-        0x09, 0x9a,//     Media Select HOME
-        0x09, 0x40,//     Menu
-        0x09, 0x41,//     Menu  Pick
-        0x09, 0x42,//     Menu Up
-        0x09, 0x43,//     Menu Down
-        0x09, 0x44,//     Menu Left
-        0x09, 0x45,//     Menu Right
-        0x09, 0x46,//     Menu Escape
-
-        0x19, 0x00,                 //     Usage Minimum (0)
-        0x29, 0x65,                 //     Usage Maximum (100)
-
-        0x75, 0x01,//     Report Size (8)
-        0x95, 0x02,//     Report Count (1)
-
-        0x81, 0x02,//     Input (Data, Variable, Absolute)
-
-        0xc0
-    };
-    */
-
-    static uint8_t report_map_data[] =
-    {
-        0x05, 0x01,                 // Usage Page (Generic Desktop)
-        0x09, 0x06,                 // Usage (Keyboard)
-        0xA1, 0x01,                 // Collection (Application)
-        0x05, 0x07,                 //     Usage Page (Key Codes)
-        0x19, 0xe0,                 //     Usage Minimum (224)
-        0x29, 0xe7,                 //     Usage Maximum (231)
-        0x15, 0x00,                 //     Logical Minimum (0)
-        0x25, 0x01,                 //     Logical Maximum (1)
-        0x75, 0x01,                 //     Report Size (1)
-        0x95, 0x08,                 //     Report Count (8)
-        0x81, 0x02,                 //     Input (Data, Variable, Absolute)
-
-        0x95, 0x01,                 //     Report Count (1)
-        0x75, 0x08,                 //     Report Size (8)
-        0x81, 0x01,                 //     Input (Constant) reserved byte(1)
-
-        0x95, 0x05,                 //     Report Count (5)
-        0x75, 0x01,                 //     Report Size (1)
-        0x05, 0x08,                 //     Usage Page (Page# for LEDs)
-        0x19, 0x01,                 //     Usage Minimum (1)
-        0x29, 0x05,                 //     Usage Maximum (5)
-        0x91, 0x02,                 //     Output (Data, Variable, Absolute), Led report
-        0x95, 0x01,                 //     Report Count (1)
-        0x75, 0x03,                 //     Report Size (3)
-        0x91, 0x01,                 //     Output (Data, Variable, Absolute), Led report padding
-
-        0x95, 0x06,                 //     Report Count (6)
-        0x75, 0x08,                 //     Report Size (8)
-        0x15, 0x00,                 //     Logical Minimum (0)
-        0x25, 0xFF,                 //     Logical Maximum (101)
-        0x05, 0x07,                 //     Usage Page (Key codes)
-        0x19, 0x00,                 //     Usage Minimum (0)
-        0x29, 0x82,                 //     Usage Maximum (101)
-        0x81, 0x00,                 //     Input (Data, Array) Key array(6 bytes)
-
-        0x09, 0x05,                 //     Usage (Vendor Defined)
-        0x15, 0x00,                 //     Logical Minimum (0)
-        0x26, 0xFF, 0x00,           //     Logical Maximum (255)
-        0x75, 0x08,                 //     Report Count (2)
-        0x95, 0x02,                 //     Report Size (8 bit)
-        0xB1, 0x02,                 //     Feature (Data, Variable, Absolute)
-
-        0xC0                        // End Collection (Application)
+        0xc0,        // End Collection (Application)
     };
 
 
     // Initialize HID Service
     p_input_report                      = &input_report_array[INPUT_REPORT_KEYS_INDEX];
     p_input_report->max_len             = INPUT_REPORT_KEYS_MAX_LEN;
-    p_input_report->rep_ref.report_id   = INPUT_REP_REF_ID;
+    p_input_report->rep_ref.report_id   = 1;
     p_input_report->rep_ref.report_type = BLE_HIDS_REP_TYPE_INPUT;
 
     BLE_GAP_CONN_SEC_MODE_SET_ENC_NO_MITM(&p_input_report->security_mode.cccd_write_perm);
     BLE_GAP_CONN_SEC_MODE_SET_ENC_NO_MITM(&p_input_report->security_mode.read_perm);
     BLE_GAP_CONN_SEC_MODE_SET_ENC_NO_MITM(&p_input_report->security_mode.write_perm);
+
+    p_input_consumer_report                      = &input_report_array[INPUT_REPORT_CONSUMER_INDEX];
+    p_input_consumer_report->max_len             = INPUT_REPORT_CONSUMER_MAX_LEN;
+    p_input_consumer_report->rep_ref.report_id   = 2;
+    p_input_consumer_report->rep_ref.report_type = BLE_HIDS_REP_TYPE_INPUT;
+
+    BLE_GAP_CONN_SEC_MODE_SET_ENC_NO_MITM(&p_input_consumer_report->security_mode.cccd_write_perm);
+    BLE_GAP_CONN_SEC_MODE_SET_ENC_NO_MITM(&p_input_consumer_report->security_mode.read_perm);
+    BLE_GAP_CONN_SEC_MODE_SET_ENC_NO_MITM(&p_input_consumer_report->security_mode.write_perm);
 
     p_output_report                      = &output_report_array[OUTPUT_REPORT_INDEX];
     p_output_report->max_len             = OUTPUT_REPORT_MAX_LEN;
@@ -583,9 +576,9 @@ static void hids_init(void)
 
     hids_init_obj.evt_handler                    = on_hids_evt;
     hids_init_obj.error_handler                  = service_error_handler;
-    hids_init_obj.is_kb                          = true;
+    hids_init_obj.is_kb                          = false;
     hids_init_obj.is_mouse                       = false;
-    hids_init_obj.inp_rep_count                  = 1;
+    hids_init_obj.inp_rep_count                  = 2;
     hids_init_obj.p_inp_rep_array                = input_report_array;
     hids_init_obj.outp_rep_count                 = 1;
     hids_init_obj.p_outp_rep_array               = output_report_array;
@@ -750,7 +743,7 @@ static uint32_t send_key_scan_press_release(ble_hids_t *   p_hids,
     uint16_t data_len;
     uint8_t  data[INPUT_REPORT_KEYS_MAX_LEN];
 
-    // HID Report Descriptor enumerates an array of size 6, the pattern hence shall not be any
+    // HID Report Descriptor enumerates an array of size 7, the pattern hence shall not be any
     // longer than this.
     STATIC_ASSERT((INPUT_REPORT_KEYS_MAX_LEN - 2) == 6);
 
@@ -782,7 +775,7 @@ static uint32_t send_key_scan_press_release(ble_hids_t *   p_hids,
 
         if (!m_in_boot_mode)
         {
-            SEGGER_RTT_printf(0, "\x1B[32msend\x1B[0m\n");
+            SEGGER_RTT_printf(0, "\x1B[32msend\x1B0m\n");
             err_code = ble_hids_inp_rep_send(p_hids,
                                              INPUT_REPORT_KEYS_INDEX,
                                              INPUT_REPORT_KEYS_MAX_LEN,
@@ -1043,6 +1036,24 @@ static void on_hid_rep_char_write(ble_hids_evt_t *p_evt)
     }
 }
 
+static void send_consumer_key(uint8_t *data) {
+
+    uint32_t err_code = ble_hids_inp_rep_send(&m_hids,
+                        INPUT_REPORT_CONSUMER_INDEX,
+                        INPUT_REPORT_CONSUMER_MAX_LEN,
+                        data);
+
+    if ((err_code != NRF_SUCCESS) &&
+            (err_code != NRF_ERROR_INVALID_STATE) &&
+            (err_code != BLE_ERROR_NO_TX_PACKETS) &&
+            (err_code != BLE_ERROR_GATTS_SYS_ATTR_MISSING)
+       )
+    {
+        APP_ERROR_HANDLER(err_code);
+    }
+
+}
+
 
 static void dpad_timeout_handler(void * p_context) {
 
@@ -1051,7 +1062,7 @@ static void dpad_timeout_handler(void * p_context) {
         button_state_change = false;
         SEGGER_RTT_printf(0, "\x1B[32mbutton_state_change\x1B[0m\n");
 
-        //uint16_t err_code = NRF_SUCCESS;
+        uint16_t err_code = NRF_SUCCESS;
 
         //uint16_t err_code = ble_displays_on_button_change(&m_dis, button_state, &m_dis.dpad_handles);
 
@@ -1090,18 +1101,44 @@ static void dpad_timeout_handler(void * p_context) {
                 keys_send(1, p_key_pattern, 0);
                 break;
             }
+            case BUTTON_PLAY_PAUSE:
+            {
+                SEGGER_RTT_printf(0, "\x1B[32mPLAY_PAUSE\x1B[0m\n");
+
+                m_consumer_pressed = true;
+
+                uint8_t  data[2];
+                data[0] = 0xcd;
+                data[1] = 0x00;
+
+                send_consumer_key(data);
+
+                break;
+            }
             case BUTTON_HOME:
             {
-                //p_key_pattern[0] = 0x28;
-                //keys_send(1, p_key_pattern, 0x80);
-                p_key_pattern[0] = 0x4a;
-                keys_send(1, p_key_pattern, 0x00);
+                SEGGER_RTT_printf(0, "\x1B[32mHOME\x1B[0m\n");
+
+                m_consumer_pressed = true;
+
+                uint8_t  data[2];
+                data[0] = 0x23;
+                data[1] = 0x02;
+
+                send_consumer_key(data);
+
                 break;
             }
             case BUTTON_VOICE:
             {
-                p_key_pattern[0] = 0x00;
-                keys_send(1, p_key_pattern, 0x80);
+                m_consumer_pressed = true;
+
+                uint8_t  data[2];
+                data[0] = 0x21;
+                data[1] = 0x02;
+
+                send_consumer_key(data);
+
                 break;
             }
             case BUTTON_BACK:
@@ -1112,8 +1149,22 @@ static void dpad_timeout_handler(void * p_context) {
             }
             case BUTTON_NONE:
             {
-                p_key_pattern[0] = 0x00;
-                keys_send(1, p_key_pattern, 0);
+                if (!m_consumer_pressed) {
+                    SEGGER_RTT_printf(0, "\x1B[32msend non consumer release\x1B[0m\n");
+                    p_key_pattern[0] = 0x00;
+                    keys_send(1, p_key_pattern, 0);
+                }
+                else
+                {
+                    SEGGER_RTT_printf(0, "\x1B[32msend consumer release\x1B[0m\n");
+
+                    uint8_t  data[2];
+                    data[0] = 0x00;
+                    data[1] = 0x00;
+
+                    send_consumer_key(data);
+                }
+                m_consumer_pressed = false;
                 m_button_pressed = false;
                 break;
             }
@@ -1553,8 +1604,9 @@ static void button_event_handler(uint8_t pin_no, uint8_t button_action)
             break;
 
         case BUTTON_S2:
-
-            SEGGER_RTT_printf(0, "\x1B[32mbutton BUTTON_S2 : NO ACTION\x1B[0m\n");
+            button_state = BUTTON_PLAY_PAUSE;
+            m_button_pressed = true;
+            SEGGER_RTT_printf(0, "\x1B[32mbutton BUTTON_S2 : BUTTON_PLAY_PAUSE\x1B[0m\n");
             break;
 
         case BUTTON_S3:
