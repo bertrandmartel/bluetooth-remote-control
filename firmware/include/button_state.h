@@ -27,13 +27,14 @@
 	@author Bertrand Martel
 	@version 1.0
 */
-E(BUTTON_NONE    , 0x00)
-E(BUTTON_DOWN    , 0x01)
-E(BUTTON_RIGHT   , 0x02)
-E(BUTTON_SELECT  , 0x03)
-E(BUTTON_UP      , 0x04)
-E(BUTTON_LEFT    , 0x05)
-E(BUTTON_VOICE   , 0x06)
-E(BUTTON_HOME    , 0x07)
-E(BUTTON_BACK    , 0x08)
+E(BUTTON_NONE          , 0x00)
+E(BUTTON_DOWN          , 0x01)
+E(BUTTON_RIGHT         , 0x02)
+E(BUTTON_SELECT        , 0x03)
+E(BUTTON_UP            , 0x04)
+E(BUTTON_LEFT          , 0x05)
+E(BUTTON_VOICE         , 0x06)
+E(BUTTON_HOME          , 0x07)
+E(BUTTON_BACK          , 0x08)
+E(BUTTON_PLAY_PAUSE    , 0x09)
 #undef E
