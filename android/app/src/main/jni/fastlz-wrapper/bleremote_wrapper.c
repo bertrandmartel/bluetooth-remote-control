@@ -62,7 +62,7 @@
 /* magic identifier for 6pack file */
 static unsigned char sixpack_magic[8] = {137, '6', 'P', 'K', 13, 10, 26, 10};
 
-#define BLOCK_SIZE (8192)
+#define BLOCK_SIZE (4096)
 
 /* prototypes */
 static inline unsigned long update_adler32(unsigned long checksum, const void *buf, int len);

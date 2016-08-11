@@ -14,13 +14,15 @@
 /* magic identifier for 6pack file */
 unsigned char sixpack_magic[8] = {137, '6', 'P', 'K', 13, 10, 26, 10};
 
-extern uint8_t block_offset;
-extern pstorage_handle_t pstorage_handle;
-extern uint16_t frame_offset;
-extern bool image_part_select;
-extern uint8_t *image_part;
-extern uint8_t *image_part2;
-extern uint32_t image_index;
+pstorage_handle_t  pstorage_handle;
+uint8_t *image_part = 0;
+uint8_t *image_part2 = 0;
+bool image_part_select = false;
+uint8_t block_offset = 0;
+uint32_t image_index = 0;
+uint16_t frame_offset = 0;
+uint8_t block_max = 0;
+uint8_t last_value = 0;
 
 uint32_t store_data_pstorage() {
 
@@ -208,8 +210,6 @@ void read_memory_chunk(uint8_t * output_buffer, int length, uint8_t *block_offse
 
             if (retval == NRF_SUCCESS) {
 
-                //SEGGER_RTT_printf(0, "\x1B[32mrequesting a length of : %d\x1B[0m\n", (end_index + align_offset2));
-
                 pstorage_size_t data_length = length - limit;
 
                 uint32_t remain_data =  0;
@@ -260,6 +260,13 @@ void read_memory_chunk(uint8_t * output_buffer, int length, uint8_t *block_offse
 
                         if (retval != NRF_SUCCESS) {
                             SEGGER_RTT_printf(0, "\x1B[32mpstorage_load FAILURE4\x1B[0m\n");
+                        }
+
+                        SEGGER_RTT_printf(0, "\x1B[32mblock_max : %d, current block : %d\x1B[0m\n", block_max, *block_offset);
+
+                        if (*block_offset == block_max) {
+                            //TODO : fix this bug => last value stored in pstorage is incorrect (0xFF)
+                            tmp_buffer[remain_data - 1] = last_value;
                         }
 
                         for (int i  = 0; i < remain_data; i++) {

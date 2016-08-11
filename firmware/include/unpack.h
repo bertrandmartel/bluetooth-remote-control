@@ -24,10 +24,20 @@
 #ifndef UNPACK_H__
 #define UNPACK_H__
 
-#define BLOCK_SIZE (8192)
+#define BLOCK_SIZE (4096)
 
 /* for Adler-32 checksum algorithm, see RFC 1950 Section 8.2 */
 #define ADLER32_BASE 65521
+
+extern uint8_t block_offset;
+extern pstorage_handle_t pstorage_handle;
+extern uint16_t frame_offset;
+extern bool image_part_select;
+extern uint8_t *image_part;
+extern uint8_t *image_part2;
+extern uint32_t image_index;
+extern uint8_t block_max;
+extern uint8_t last_value;
 
 uint32_t store_data_pstorage();
 
