@@ -9,23 +9,6 @@
  * the file.
  *
  */
-
-/** @file
- *
- * @defgroup ble_sdk_app_hids_keyboard_main main.c
- * @{
- * @ingroup ble_sdk_app_hids_keyboard
- * @brief HID Keyboard Sample Application main file.
- *
- * This file contains is the source code for a sample application using the HID, Battery and Device
- * Information Services for implementing a simple keyboard functionality.
- * Pressing Button 0 will send text 'hello' to the connected peer. On receiving output report,
- * it toggles the state of LED 2 on the mother board based on whether or not Caps Lock is on.
- * This application uses the @ref app_scheduler.
- *
- * Also it would accept pairing requests from any peer device.
- */
-
 #include <stdint.h>
 #include <string.h>
 #include "nordic_common.h"
@@ -48,14 +31,17 @@
 #include "app_button.h"
 #include "bsp_btn_ble.h"
 #include "app_scheduler.h"
+#include "device_manager.h"
 #include "softdevice_handler_appsh.h"
 #include "app_timer_appsh.h"
-#include "device_manager.h"
 #include "pstorage.h"
 #include "SEGGER_RTT.h"
 #include "adafruit1_8_oled_library.h"
 #include "ble_displays.h"
 #include "unpack.h"
+
+#define APP_ADV_INTERVAL                64                                          /**< The advertising interval (in units of 0.625 ms. This value corresponds to 40 ms). */
+#define APP_ADV_TIMEOUT_IN_SECONDS      180                                         /**< The advertising timeout (in units of seconds). */
 
 #define E(x,y) x = y,
 enum BUTTON_STATE_ENUM {
@@ -268,17 +254,6 @@ static const uint16_t MAX_SIZE_ARRAY = 10584;
 
 static uint16_t bitmap_offset = 0;
 
-pstorage_handle_t       pstorage_handle;
-
-// first image buffer
-uint8_t *image_part = 0;
-// second image buffer
-uint8_t *image_part2 = 0;
-
-bool image_part_select = false;
-
-uint8_t block_offset = 0;
-
 bool block_upload = false;
 
 #define PAGE_CHUNK 1024
@@ -287,32 +262,10 @@ bool block_upload = false;
 //when this flag is set to 1, it means it is the final bitmap chunk to be stored before being processed
 static volatile uint8_t final_storage_bitmap_flag = 0;
 
-uint32_t image_index = 0;
-uint16_t frame_offset = 0;
-
 static volatile uint16_t bitmap_stop_iteration = 0;
 static volatile uint16_t bitmap_count_iteration = 0;
 
 #define BITMAP_CHUNK_SIZE 128
-
-static uint8_t m_release_key[] = {
-    0x00,
-    0x00,
-    0x00,
-    0x00,
-    0x00,
-    0x00
-};
-
-static uint8_t m_sample_key_press_scan_str[] =                                          /**< Key pattern to be sent when the key press button has been pushed. */
-{
-    0x0b, /* Key h */
-    0x08, /* Key e */
-    0x0f, /* Key l */
-    0x0f, /* Key l */
-    0x12, /* Key o */
-    0x28  /* Key Return */
-};
 
 static uint8_t m_caps_on_key_scan_str[] =                                                /**< Key pattern to be sent when the output report has been written with the CAPS LOCK bit set. */
 {
@@ -730,6 +683,8 @@ static void bitmap_handler(ble_displays_t * p_dis, ble_gatts_evt_write_t * p_evt
                 block_offset = 0;
                 bitmap_offset = 0;
                 bitmap_count_iteration = 0;
+                block_max = 0;
+                last_value = 0;
 
                 free(image_part);
                 image_part = NULL;
@@ -802,6 +757,16 @@ static void bitmap_handler(ble_displays_t * p_dis, ble_gatts_evt_write_t * p_evt
 
                     //set flags for last chunk
                     final_storage_bitmap_flag = 1;
+
+                    if (!image_part_select) {
+                        last_value = image_part[frame_offset - 1];
+                    }
+                    else {
+                        last_value = image_part2[frame_offset - 1];
+                    }
+
+                    block_max = block_offset;
+
                     //store last frames in pstorage
                     uint32_t retval = store_data_pstorage();
 
@@ -1076,18 +1041,6 @@ static void init_storage() {
     }
 }
 
-/** @brief   Function for checking if the Shift key is pressed.
- *
- *  @returns true if the SHIFT_BUTTON is pressed. false otherwise.
- */
-static bool is_shift_key_pressed(void)
-{
-    bool result;
-    uint32_t err_code = bsp_button_is_pressed(SHIFT_BUTTON_ID, &result);
-    APP_ERROR_CHECK(err_code);
-    return result;
-}
-
 /**@brief   Function for transmitting a key scan Press & Release Notification.
  *
  * @warning This handler is an example only. You need to analyze how you wish to send the key
@@ -1152,18 +1105,11 @@ static uint32_t send_key_scan_press_release(ble_hids_t *   p_hids,
         // Copy the scan code.
         memcpy(data + SCAN_CODE_POS + offset, p_key_pattern + offset, data_len - offset);
 
-        /*
-        if (is_shift_key_pressed())
-        {
-            data[MODIFIER_KEY_POS] |= SHIFT_KEY_CODE;
-        }
-        */
-
         data[MODIFIER_KEY_POS] = modifier;
 
         if (!m_in_boot_mode)
         {
-            SEGGER_RTT_printf(0, "\x1B[32msend\x1B0m\n");
+            SEGGER_RTT_printf(0, "\x1B[32msend\x1B[0m\n");
             err_code = ble_hids_inp_rep_send(p_hids,
                                              INPUT_REPORT_KEYS_INDEX,
                                              INPUT_REPORT_KEYS_MAX_LEN,
@@ -1189,7 +1135,6 @@ static uint32_t send_key_scan_press_release(ble_hids_t *   p_hids,
     return err_code;
 }
 
-
 /**@brief   Function for initializing the buffer queue used to key events that could not be
  *          transmitted
  *
@@ -1211,122 +1156,6 @@ static void buffer_init(void)
         BUFFER_ELEMENT_INIT(buffer_count);
     }
 }
-
-
-/**@brief Function for enqueuing key scan patterns that could not be transmitted either completely
- *        or partially.
- *
- * @warning This handler is an example only. You need to analyze how you wish to send the key
- *          release.
- *
- * @param[in]  p_hids         Identifies the service for which Key Notifications are buffered.
- * @param[in]  p_key_pattern  Pointer to key pattern.
- * @param[in]  pattern_len    Length of key pattern.
- * @param[in]  offset         Offset applied to Key Pattern when requesting a transmission on
- *                            dequeue, @ref buffer_dequeue.
- * @return     NRF_SUCCESS on success, else an error code indicating reason for failure.
- */
-static uint32_t buffer_enqueue(ble_hids_t *            p_hids,
-                               uint8_t *               p_key_pattern,
-                               uint16_t                pattern_len,
-                               uint16_t                offset,
-                               uint8_t                 modifier)
-{
-    buffer_entry_t * element;
-    uint32_t         err_code = NRF_SUCCESS;
-
-    if (BUFFER_LIST_FULL())
-    {
-        // Element cannot be buffered.
-        err_code = NRF_ERROR_NO_MEM;
-    }
-    else
-    {
-        // Make entry of buffer element and copy data.
-        element                 = &buffer_list.buffer[(buffer_list.wp)];
-        element->p_instance     = p_hids;
-        element->p_data         = p_key_pattern;
-        element->data_offset    = offset;
-        element->data_len       = pattern_len;
-        element->modifier       = modifier;
-
-        buffer_list.count++;
-        buffer_list.wp++;
-
-        if (buffer_list.wp == MAX_BUFFER_ENTRIES)
-        {
-            buffer_list.wp = 0;
-        }
-    }
-
-    return err_code;
-}
-
-
-/**@brief   Function to dequeue key scan patterns that could not be transmitted either completely of
- *          partially.
- *
- * @warning This handler is an example only. You need to analyze how you wish to send the key
- *          release.
- *
- * @param[in]  tx_flag   Indicative of whether the dequeue should result in transmission or not.
- * @note       A typical example when all keys are dequeued with transmission is when link is
- *             disconnected.
- *
- * @return     NRF_SUCCESS on success, else an error code indicating reason for failure.
- */
-static uint32_t buffer_dequeue(bool tx_flag)
-{
-    buffer_entry_t * p_element;
-    uint32_t         err_code = NRF_SUCCESS;
-    uint16_t         actual_len;
-
-    if (BUFFER_LIST_EMPTY())
-    {
-        err_code = NRF_ERROR_NOT_FOUND;
-    }
-    else
-    {
-        bool remove_element = true;
-
-        p_element = &buffer_list.buffer[(buffer_list.rp)];
-
-        if (tx_flag)
-        {
-            err_code = send_key_scan_press_release(p_element->p_instance,
-                                                   p_element->p_data,
-                                                   p_element->data_len,
-                                                   p_element->data_offset,
-                                                   &actual_len,
-                                                   p_element->modifier);
-            // An additional notification is needed for release of all keys, therefore check
-            // is for actual_len <= element->data_len and not actual_len < element->data_len
-            if ((err_code == BLE_ERROR_NO_TX_PACKETS) && (actual_len <= p_element->data_len))
-            {
-                // Transmission could not be completed, do not remove the entry, adjust next data to
-                // be transmitted
-                p_element->data_offset = actual_len;
-                remove_element         = false;
-            }
-        }
-
-        if (remove_element)
-        {
-            BUFFER_ELEMENT_INIT(buffer_list.rp);
-
-            buffer_list.rp++;
-            buffer_list.count--;
-
-            if (buffer_list.rp == MAX_BUFFER_ENTRIES)
-            {
-                buffer_list.rp = 0;
-            }
-        }
-    }
-
-    return err_code;
-}
-
 
 /**@brief Function for sending sample key presses to the peer.
  *
@@ -1449,10 +1278,6 @@ static void dpad_timeout_handler(void * p_context) {
 
         button_state_change = false;
         SEGGER_RTT_printf(0, "\x1B[32mbutton_state_change\x1B[0m\n");
-
-        uint16_t err_code = NRF_SUCCESS;
-
-        //uint16_t err_code = ble_displays_on_button_change(&m_dis, button_state, &m_dis.dpad_handles);
 
         if (m_conn_handle != BLE_CONN_HANDLE_INVALID)
         {
@@ -1814,14 +1639,10 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
 
     case BLE_EVT_TX_COMPLETE:
         SEGGER_RTT_printf(0, "\x1B[32mBLE_EVT_TX_COMPLETE\x1B[0m\n");
-        // Send next key event
-        (void) buffer_dequeue(true);
         break;
 
     case BLE_GAP_EVT_DISCONNECTED:
         SEGGER_RTT_printf(0, "\x1B[32mBLE_GAP_EVT_DISCONNECTED\x1B[0m\n");
-        // Dequeue all keys without transmission.
-        (void) buffer_dequeue(false);
 
         m_conn_handle = BLE_CONN_HANDLE_INVALID;
         err_code = app_button_disable();
@@ -1917,38 +1738,24 @@ static void sys_evt_dispatch(uint32_t sys_evt)
     ble_advertising_on_sys_evt(sys_evt);
 }
 
-
-/**@brief Function for initializing the BLE stack.
- *
- * @details Initializes the SoftDevice and the BLE event interrupt.
- */
-static void ble_stack_init(void)
+void ble_stack_init(void)
 {
     uint32_t err_code;
-
     nrf_clock_lf_cfg_t clock_lf_cfg = NRF_CLOCK_LFCLKSRC;
 
-    // Initialize the SoftDevice handler module.
-    SOFTDEVICE_HANDLER_APPSH_INIT(&clock_lf_cfg, true);
+    SOFTDEVICE_HANDLER_INIT(&clock_lf_cfg, NULL);
 
+    // Enable BLE stack
     ble_enable_params_t ble_enable_params;
-    err_code = softdevice_enable_get_default_config(CENTRAL_LINK_COUNT,
-               PERIPHERAL_LINK_COUNT,
-               &ble_enable_params);
+    err_code = softdevice_enable_get_default_config(0, 1, &ble_enable_params);
     APP_ERROR_CHECK(err_code);
 
-    //Check the ram settings against the used number of links
-    CHECK_RAM_START_ADDR(CENTRAL_LINK_COUNT, PERIPHERAL_LINK_COUNT);
-
-    // Enable BLE stack.
     err_code = softdevice_enable(&ble_enable_params);
     APP_ERROR_CHECK(err_code);
 
-    // Register with the SoftDevice handler module for BLE events.
     err_code = softdevice_ble_evt_handler_set(ble_evt_dispatch);
     APP_ERROR_CHECK(err_code);
 
-    // Register with the SoftDevice handler module for BLE events.
     err_code = softdevice_sys_evt_handler_set(sys_evt_dispatch);
     APP_ERROR_CHECK(err_code);
 }
@@ -1965,8 +1772,6 @@ static void scheduler_init(void)
 static void button_event_handler(uint8_t pin_no, uint8_t button_action)
 {
     SEGGER_RTT_printf(0, "\x1B[32mbutton_event_handler\x1B[0m\n");
-
-    uint32_t err_code;
 
     uint8_t old_state = button_state;
 
@@ -2053,10 +1858,12 @@ static void bsp_event_handler(bsp_event_t event)
     switch (event)
     {
     case BSP_EVENT_SLEEP:
+        SEGGER_RTT_printf(0, "\x1B[32mBSP_EVENT_SLEEP\x1B[0m\n");
         sleep_mode_enter();
         break;
 
     case BSP_EVENT_DISCONNECT:
+        SEGGER_RTT_printf(0, "\x1B[32mBSP_EVENT_DISCONNECT\x1B[0m\n");
         err_code = sd_ble_gap_disconnect(m_conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
         if (err_code != NRF_ERROR_INVALID_STATE)
         {
@@ -2065,6 +1872,7 @@ static void bsp_event_handler(bsp_event_t event)
         break;
 
     case BSP_EVENT_WHITELIST_OFF:
+        SEGGER_RTT_printf(0, "\x1B[32mBSP_EVENT_WHITELIST_OFF\x1B[0m\n");
         err_code = ble_advertising_restart_without_whitelist();
         if (err_code != NRF_ERROR_INVALID_STATE)
         {
@@ -2072,7 +1880,7 @@ static void bsp_event_handler(bsp_event_t event)
         }
         break;
     case BSP_EVENT_KEY_0:
-
+        SEGGER_RTT_printf(0, "\x1B[32mBSP_EVENT_KEY_0\x1B[0m\n");
         err_code = ble_advertising_restart_without_whitelist();
         if (err_code != NRF_ERROR_INVALID_STATE)
         {
@@ -2105,7 +1913,7 @@ static void advertising_init(void)
 
     ble_adv_modes_config_t options =
     {
-        BLE_ADV_WHITELIST_ENABLED,
+        BLE_ADV_WHITELIST_DISABLED,
         BLE_ADV_DIRECTED_ENABLED,
         BLE_ADV_DIRECTED_SLOW_DISABLED, 0, 0,
         BLE_ADV_FAST_ENABLED, APP_ADV_FAST_INTERVAL, APP_ADV_FAST_TIMEOUT,
@@ -2115,7 +1923,6 @@ static void advertising_init(void)
     err_code = ble_advertising_init(&advdata, NULL, &options, on_adv_evt, ble_advertising_error_handler);
     APP_ERROR_CHECK(err_code);
 }
-
 
 /**@brief Function for handling the Device Manager events.
  *
@@ -2212,7 +2019,6 @@ static void device_manager_init(bool erase_bonds)
     APP_ERROR_CHECK(err_code);
 }
 
-
 /**@brief Function for initializing buttons and leds.
  *
  * @param[out] p_erase_bonds  Will be true if the clear bonding button was pressed to wake the application up.
@@ -2226,11 +2032,8 @@ static void buttons_leds_init(bool * p_erase_bonds)
                                  bsp_event_handler);
     APP_ERROR_CHECK(err_code);
 
-    SEGGER_RTT_printf(0, "\x1B[32mafter bsp_init\x1B[0m\n");
-
     err_code = bsp_btn_ble_init(NULL, &startup_event);
     APP_ERROR_CHECK(err_code);
-    SEGGER_RTT_printf(0, "\x1B[32mafter bsp_btn_ble_init\x1B[0m\n");
     *p_erase_bonds = (startup_event == BSP_EVENT_CLEAR_BONDING_DATA);
 }
 
@@ -2275,11 +2078,7 @@ int main(void)
     adc_init();
     buttons_leds_init(&erase_bonds);
 
-    SEGGER_RTT_printf(0, "\x1B[32mafter buttons_init\x1B[0m\n");
-
     buttons_init();
-
-    SEGGER_RTT_printf(0, "\x1B[32mafter buttons_leds_init\x1B[0m\n");
 
     tft_setup();
     fillScreen(ST7735_BLACK);
@@ -2302,7 +2101,13 @@ int main(void)
     err_code = ble_advertising_start(BLE_ADV_MODE_FAST);
     APP_ERROR_CHECK(err_code);
 
+    // Initialize persistent storage module.
+    err_code = pstorage_init();
+    APP_ERROR_CHECK(err_code);
+
     init_storage();
+
+    //advertising_start();
 
     // Enter main loop.
     for (;;)
