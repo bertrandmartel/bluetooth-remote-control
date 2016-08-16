@@ -63,7 +63,7 @@ You can't combined Mode 1 & Mode 2 simultaneously.
 
 ![lcd](img/adafruit_oled.jpg)
 
-## Harware installation
+## Hardware installation
 
 ![hw](img/hw.jpg)
 
