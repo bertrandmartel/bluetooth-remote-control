@@ -1,3 +1,27 @@
+/********************************************************************************
+ * The MIT License (MIT)                                                        *
+ * <p/>                                                                         *
+ * Copyright (c) 2016 Bertrand Martel                                           *
+ * <p/>                                                                         *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy *
+ * of this software and associated documentation files (the "Software"), to deal*
+ * in the Software without restriction, including without limitation the rights *
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell    *
+ * copies of the Software, and to permit persons to whom the Software is        *
+ * furnished to do so, subject to the following conditions:                     *
+ * <p/>                                                                         *
+ * The above copyright notice and this permission notice shall be included in   *
+ * all copies or substantial portions of the Software.                          *
+ * <p/>                                                                         *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR   *
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,     *
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE  *
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER       *
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,*
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN    *
+ * THE SOFTWARE.                                                                *
+ */
+
 package com.github.akinaru.bleremote.activity;
 
 import android.app.Dialog;
@@ -39,14 +63,11 @@ import com.github.akinaru.bleremote.bluetooth.events.BluetoothEvents;
 import com.github.akinaru.bleremote.bluetooth.events.BluetoothObject;
 import com.github.akinaru.bleremote.bluetooth.listener.IPushListener;
 import com.github.akinaru.bleremote.inter.IBleDisplayRemoteDevice;
-import com.github.akinaru.bleremote.inter.IButtonListener;
 import com.github.akinaru.bleremote.inter.IDirectionPadListener;
 import com.github.akinaru.bleremote.inter.IProgressListener;
 import com.github.akinaru.bleremote.inter.IViewHolderClickListener;
 import com.github.akinaru.bleremote.inter.IViewHolderLongClickListener;
 import com.github.akinaru.bleremote.model.BitmapObj;
-import com.github.akinaru.bleremote.model.Button;
-import com.github.akinaru.bleremote.model.ButtonState;
 import com.github.akinaru.bleremote.model.DpadState;
 import com.github.akinaru.bleremote.model.Led;
 import com.github.akinaru.bleremote.service.BleDisplayRemoteService;
@@ -72,9 +93,11 @@ import uz.shift.colorpicker.LineColorPicker;
 import uz.shift.colorpicker.OnColorChangedListener;
 
 /**
- * Created by akinaru on 13/04/16.
+ * @author Bertrand Martel
  */
 public class DeviceActivity extends BaseActivity {
+
+    private final static String DEVICE_NAME = "BleDisplayRemote";
 
     private final static String TAG = DeviceActivity.class.getSimpleName();
 
@@ -82,7 +105,7 @@ public class DeviceActivity extends BaseActivity {
 
     private IBleDisplayRemoteDevice mDisplayDevice;
 
-    private HashMap<Button, ImageButton> buttonMap = new HashMap<>();
+    private HashMap<DpadState, ImageButton> buttonMap = new HashMap<>();
 
     private HashMap<Led, ImageButton> ledMap = new HashMap<>();
 
@@ -240,17 +263,13 @@ public class DeviceActivity extends BaseActivity {
         ContextWrapper cw = new ContextWrapper(getApplicationContext());
         directory = cw.getDir(BITMAP_DIRECTORY, Context.MODE_PRIVATE);
 
-        Log.i(TAG, "directory : " + directory.exists());
-
         int size = loadImageFromStorage(directory.getPath());
 
         if (size == 0) {
-            Log.i(TAG, "saving default image");
             Bitmap bm = BitmapFactory.decodeResource(getResources(), R.raw.logo_github_default);
             bm = Bitmap.createScaledBitmap(bm, 128, 160, false);
 
             int bytes = bm.getByteCount();
-            Log.i(TAG, "byte count => " + bytes);
 
             ByteBuffer buffer = ByteBuffer.allocate(bytes);
             bm.copyPixelsToBuffer(buffer);
@@ -314,11 +333,7 @@ public class DeviceActivity extends BaseActivity {
                     e.printStackTrace();
                 }
 
-                Log.i(TAG, "from path : " + inputPath + " to " + outputFile.getAbsolutePath());
-
-                int ret = BleDisplayRemoteService.pack(inputPath, outputFile.getAbsolutePath());
-
-                Log.i(TAG, "fastlz pack result : " + ret);
+                BleDisplayRemoteService.pack(inputPath, outputFile.getAbsolutePath());
 
                 File file = new File(outputFile.getAbsolutePath());
                 byte[] data = new byte[(int) file.length()];
@@ -327,8 +342,6 @@ public class DeviceActivity extends BaseActivity {
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-
-                Log.i(TAG, "data.pack => " + data.length + " for " + file.length());
 
                 generateDialog(bitmapData.length, data.length);
 
@@ -410,15 +423,15 @@ public class DeviceActivity extends BaseActivity {
         RelativeLayout btnLayout = (RelativeLayout) findViewById(R.id.button_group);
         RelativeLayout ledLayout = (RelativeLayout) findViewById(R.id.led_group);
 
-        buttonMap.put(Button.BUTTON1, (ImageButton) btnLayout.findViewById(R.id.button1));
-        buttonMap.put(Button.BUTTON2, (ImageButton) btnLayout.findViewById(R.id.button2));
-        buttonMap.put(Button.BUTTON3, (ImageButton) btnLayout.findViewById(R.id.button3));
-        buttonMap.put(Button.BUTTON4, (ImageButton) btnLayout.findViewById(R.id.button4));
+        buttonMap.put(DpadState.BUTTON_VOICE, (ImageButton) btnLayout.findViewById(R.id.button1));
+        buttonMap.put(DpadState.BUTTON_BACK, (ImageButton) btnLayout.findViewById(R.id.button2));
+        buttonMap.put(DpadState.BUTTON_PLAY_PAUSE, (ImageButton) btnLayout.findViewById(R.id.button3));
+        buttonMap.put(DpadState.BUTTON_HOME, (ImageButton) btnLayout.findViewById(R.id.button4));
 
-        buttonMap.get(Button.BUTTON1).setEnabled(false);
-        buttonMap.get(Button.BUTTON2).setEnabled(false);
-        buttonMap.get(Button.BUTTON3).setEnabled(false);
-        buttonMap.get(Button.BUTTON4).setEnabled(false);
+        buttonMap.get(DpadState.BUTTON_VOICE).setEnabled(false);
+        buttonMap.get(DpadState.BUTTON_BACK).setEnabled(false);
+        buttonMap.get(DpadState.BUTTON_PLAY_PAUSE).setEnabled(false);
+        buttonMap.get(DpadState.BUTTON_HOME).setEnabled(false);
 
         ledMap.put(Led.LED1, (ImageButton) ledLayout.findViewById(R.id.led1));
         ledMap.put(Led.LED2, (ImageButton) ledLayout.findViewById(R.id.led2));
@@ -446,7 +459,7 @@ public class DeviceActivity extends BaseActivity {
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-                                Toast.makeText(DeviceActivity.this, "fail to set led state", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(DeviceActivity.this, getResources().getString(R.string.toast_fail_led), Toast.LENGTH_SHORT).show();
                             }
                         });
                     }
@@ -476,7 +489,7 @@ public class DeviceActivity extends BaseActivity {
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-                                Toast.makeText(DeviceActivity.this, "fail to set led state", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(DeviceActivity.this, getResources().getString(R.string.toast_fail_led), Toast.LENGTH_SHORT).show();
                             }
                         });
                     }
@@ -506,7 +519,7 @@ public class DeviceActivity extends BaseActivity {
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-                                Toast.makeText(DeviceActivity.this, "fail to set led state", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(DeviceActivity.this, getResources().getString(R.string.toast_fail_led), Toast.LENGTH_SHORT).show();
                             }
                         });
                     }
@@ -771,24 +784,6 @@ public class DeviceActivity extends BaseActivity {
         return 0;
     }
 
-    public byte[] readBytes(InputStream inputStream) throws IOException {
-        // this dynamically extends to take the bytes you read
-        ByteArrayOutputStream byteBuffer = new ByteArrayOutputStream();
-
-        // this is storage overwritten on each iteration with bytes
-        int bufferSize = 1024;
-        byte[] buffer = new byte[bufferSize];
-
-        // we need to know how may bytes were read to write them to the byteBuffer
-        int len = 0;
-        while ((len = inputStream.read(buffer)) != -1) {
-            byteBuffer.write(buffer, 0, len);
-        }
-
-        // and then we can return your byte array.
-        return byteBuffer.toByteArray();
-    }
-
     /**
      * Manage Bluetooth Service
      */
@@ -812,16 +807,6 @@ public class DeviceActivity extends BaseActivity {
         public void onServiceDisconnected(ComponentName name) {
         }
     };
-
-    public static byte[] readFully(InputStream input) throws IOException {
-        byte[] buffer = new byte[8192];
-        int bytesRead;
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
-        while ((bytesRead = input.read(buffer)) != -1) {
-            output.write(buffer, 0, bytesRead);
-        }
-        return output.toByteArray();
-    }
 
     /**
      * broadcast receiver to receive bluetooth events
@@ -849,47 +834,22 @@ public class DeviceActivity extends BaseActivity {
                 }
             } else if (BluetoothEvents.BT_EVENT_DEVICE_CONNECTED.equals(action)) {
                 Log.v(TAG, "Device connected");
-                Toast.makeText(DeviceActivity.this, "device connected", Toast.LENGTH_SHORT).show();
+                Toast.makeText(DeviceActivity.this, getResources().getString(R.string.toast_device_connected), Toast.LENGTH_SHORT).show();
                 mConnectingProgressDialog.cancel();
                 mConnectingProgressDialog.dismiss();
-                if (mService.getConnectionList().get(mBtDevice.getDeviceAddress()) != null) {
+                if (mBtDevice != null && mService.getConnectionList().get(mBtDevice.getDeviceAddress()) != null) {
 
                     if (mService.getConnectionList().get(mBtDevice.getDeviceAddress()).getDevice() instanceof IBleDisplayRemoteDevice) {
 
                         mDisplayDevice = (IBleDisplayRemoteDevice) mService.getConnectionList().get(mBtDevice.getDeviceAddress()).getDevice();
 
-                        mDisplayDevice.addButtonListener(new IButtonListener() {
-                            @Override
-                            public void onButtonStateChange(final Button button, ButtonState state) {
-                                Log.i(TAG, "button state change : " + button.toString() + " | state : " + state.toString());
-                                switch (state) {
-                                    case PRESSED:
-                                        runOnUiThread(new Runnable() {
-                                            @Override
-                                            public void run() {
-                                                buttonMap.get(button).setPressed(true);
-                                            }
-                                        });
-                                        break;
-                                    case RELEASED:
-                                        runOnUiThread(new Runnable() {
-                                            @Override
-                                            public void run() {
-                                                buttonMap.get(button).setPressed(false);
-                                            }
-                                        });
-                                        break;
-                                }
-                            }
-                        });
-
                         mDisplayDevice.addDirectionPadListener(new IDirectionPadListener() {
                             @Override
                             public void onDPadStateChanged(DpadState state) {
-                                Log.i(TAG, "dpad state change : " + state.toString());
+                                Log.v(TAG, "dpad state change : " + state.toString());
+
                                 switch (state) {
                                     case RIGHT:
-                                        dpadState = DpadState.RIGHT;
                                         runOnUiThread(new Runnable() {
                                             @Override
                                             public void run() {
@@ -898,7 +858,6 @@ public class DeviceActivity extends BaseActivity {
                                         });
                                         break;
                                     case LEFT:
-                                        dpadState = DpadState.LEFT;
                                         runOnUiThread(new Runnable() {
                                             @Override
                                             public void run() {
@@ -907,7 +866,6 @@ public class DeviceActivity extends BaseActivity {
                                         });
                                         break;
                                     case UP:
-                                        dpadState = DpadState.UP;
                                         runOnUiThread(new Runnable() {
                                             @Override
                                             public void run() {
@@ -916,7 +874,6 @@ public class DeviceActivity extends BaseActivity {
                                         });
                                         break;
                                     case DOWN:
-                                        dpadState = DpadState.DOWN;
                                         runOnUiThread(new Runnable() {
                                             @Override
                                             public void run() {
@@ -925,11 +882,42 @@ public class DeviceActivity extends BaseActivity {
                                         });
                                         break;
                                     case SELECT:
-                                        dpadState = DpadState.SELECT;
                                         runOnUiThread(new Runnable() {
                                             @Override
                                             public void run() {
                                                 dpadMap.get(DpadState.SELECT).setPressed(true);
+                                            }
+                                        });
+                                        break;
+                                    case BUTTON_VOICE:
+                                        runOnUiThread(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                buttonMap.get(DpadState.BUTTON_VOICE).setPressed(true);
+                                            }
+                                        });
+                                        break;
+                                    case BUTTON_HOME:
+                                        runOnUiThread(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                buttonMap.get(DpadState.BUTTON_HOME).setPressed(true);
+                                            }
+                                        });
+                                        break;
+                                    case BUTTON_BACK:
+                                        runOnUiThread(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                buttonMap.get(DpadState.BUTTON_BACK).setPressed(true);
+                                            }
+                                        });
+                                        break;
+                                    case BUTTON_PLAY_PAUSE:
+                                        runOnUiThread(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                buttonMap.get(DpadState.BUTTON_PLAY_PAUSE).setPressed(true);
                                             }
                                         });
                                         break;
@@ -975,11 +963,42 @@ public class DeviceActivity extends BaseActivity {
                                                     }
                                                 });
                                                 break;
+                                            case BUTTON_VOICE:
+                                                runOnUiThread(new Runnable() {
+                                                    @Override
+                                                    public void run() {
+                                                        buttonMap.get(DpadState.BUTTON_VOICE).setPressed(false);
+                                                    }
+                                                });
+                                                break;
+                                            case BUTTON_HOME:
+                                                runOnUiThread(new Runnable() {
+                                                    @Override
+                                                    public void run() {
+                                                        buttonMap.get(DpadState.BUTTON_HOME).setPressed(false);
+                                                    }
+                                                });
+                                                break;
+                                            case BUTTON_BACK:
+                                                runOnUiThread(new Runnable() {
+                                                    @Override
+                                                    public void run() {
+                                                        buttonMap.get(DpadState.BUTTON_BACK).setPressed(false);
+                                                    }
+                                                });
+                                                break;
+                                            case BUTTON_PLAY_PAUSE:
+                                                runOnUiThread(new Runnable() {
+                                                    @Override
+                                                    public void run() {
+                                                        buttonMap.get(DpadState.BUTTON_PLAY_PAUSE).setPressed(false);
+                                                    }
+                                                });
+                                                break;
                                         }
-
-                                        dpadState = DpadState.NONE;
                                         break;
                                 }
+                                dpadState = state;
                             }
                         });
                     }
@@ -992,9 +1011,9 @@ public class DeviceActivity extends BaseActivity {
                 Log.v(TAG, "New device has been discovered");
                 final BluetoothObject btDeviceTmp = BluetoothObject.parseArrayList(intent);
 
-                if (btDeviceTmp.getDeviceName().equals("BleDisplayRemote")) {
+                if (btDeviceTmp.getDeviceName().equals(DEVICE_NAME)) {
                     Log.v(TAG, "found new device");
-                    mConnectingProgressDialog.setMessage("Connecting to device ...");
+                    mConnectingProgressDialog.setMessage(getResources().getString(R.string.dialog_connecting));
                     mService.stopScan();
                     mBtDevice = btDeviceTmp;
                     mService.connect(mBtDevice.getDeviceAddress());
