@@ -14,7 +14,7 @@
     <string name="toast_bluetooth_disabled">Bluetooth disabled</string>
     <string name="toast_already_scanning">already scanning...</string>
     <string name="main_menu_select">Select Bluetooth device type</string>
-    <string name="toast_looking_for_rfdroid">Looking for RFdroid ...</string>
+    <string name="looking_for_device">Looking for device ...</string>
     <string name="connection_to_rfdroid">Connecting ...</string>
     <string name="email_addr">kiruazoldik92@gmail.com</string>
     <string name="issue_subject">Bluetooth Remote control</string>

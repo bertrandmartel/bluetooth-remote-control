@@ -670,7 +670,7 @@ public class DeviceActivity extends BaseActivity {
             mConnectingProgressDialog.cancel();
             mConnectingProgressDialog.dismiss();
         }
-        mConnectingProgressDialog = ProgressDialog.show(this, "", "Looking for for device ...");
+        mConnectingProgressDialog = ProgressDialog.show(this, "", getResources().getString(R.string.looking_for_device));
         mConnectingProgressDialog.show();
     }
 
