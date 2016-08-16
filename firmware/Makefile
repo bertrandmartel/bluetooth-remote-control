@@ -128,27 +128,10 @@ INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/ble/ble_services/ble_bas)
 INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/softdevice/common/softdevice_handler)
 INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/libraries/scheduler)
 
-#INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/libraries/util)
-#INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/toolchain/gcc)
-#INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/toolchain)
-#INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/ble/common)
+
 INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/ble/ble_error_log)
 INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/ble/ble_debug_assert_handler)
-#INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/libraries/timer)
-#INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/examples/bsp)
-#INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/device)
-#INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/softdevice/common/softdevice_handler)
-#INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/drivers_nrf/hal)
 INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/drivers_nrf/ble_flash)
-#INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/drivers_nrf/pstorage)
-#INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/libraries/button)
-#INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/toolchain/CMSIS/Include)
-#INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/drivers_nrf/nrf_soc_nosd)
-#INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/drivers_nrf/gpiote)
-#INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/drivers_nrf/config)
-#INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/drivers_nrf/delay)
-#INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/drivers_nrf/pstorage/config)
-#INC_PATHS += -I$(abspath $(NRF51_SDK_DIR)/components/softdevice/s130/headers)
 
 
 OBJECT_DIRECTORY = _build

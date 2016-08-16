@@ -1,3 +1,26 @@
+/************************************************************************************
+ * The MIT License (MIT)                                                            *
+ *                                                                                  *
+ * Copyright (c) 2016 Bertrand Martel                                               *
+ *                                                                                  *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy     *
+ * of this software and associated documentation files (the "Software"), to deal    *
+ * in the Software without restriction, including without limitation the rights     *
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell        *
+ * copies of the Software, and to permit persons to whom the Software is            *
+ * furnished to do so, subject to the following conditions:                         *
+ *                                                                                  *
+ * The above copyright notice and this permission notice shall be included in       *
+ * all copies or substantial portions of the Software.                              *
+ *                                                                                  *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR       *
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,         *
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE      *
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER           *
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,    *
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN        *
+ * THE SOFTWARE.                                                                    *
+ ************************************************************************************/
 /* Copyright (c) 2012 Nordic Semiconductor. All Rights Reserved.
  *
  * The information contained herein is property of Nordic Semiconductor ASA.
@@ -101,12 +124,6 @@ static const char *TRANSMIT_STATUS_STRING_ENUM[] = {
 #define APP_ADV_SLOW_INTERVAL            0x0C80                                         /**< Slow advertising interval (in units of 0.625 ms. This value corrsponds to 2 seconds). */
 #define APP_ADV_FAST_TIMEOUT             30                                             /**< The duration of the fast advertising period (in seconds). */
 #define APP_ADV_SLOW_TIMEOUT             180                                            /**< The duration of the slow advertising period (in seconds). */
-
-/*lint -emacro(524, MIN_CONN_INTERVAL) // Loss of precision */
-//#define MIN_CONN_INTERVAL                MSEC_TO_UNITS(7.5, UNIT_1_25_MS)               /**< Minimum connection interval (7.5 ms) */
-//#define MAX_CONN_INTERVAL                MSEC_TO_UNITS(30, UNIT_1_25_MS)                /**< Maximum connection interval (30 ms). */
-//#define SLAVE_LATENCY                    6                                              /**< Slave latency. */
-//#define CONN_SUP_TIMEOUT                 MSEC_TO_UNITS(430, UNIT_10_MS)                 /**< Connection supervisory timeout (430 ms). */
 
 #define MIN_CONN_INTERVAL               MSEC_TO_UNITS(30, UNIT_1_25_MS)            /**< Minimum acceptable connection interval (0.5 seconds). */
 #define MAX_CONN_INTERVAL               MSEC_TO_UNITS(30, UNIT_1_25_MS)            /**< Maximum acceptable connection interval (1 second). */
@@ -1535,7 +1552,6 @@ static void on_hids_evt(ble_hids_t * p_hids, ble_hids_evt_t *p_evt)
     }
 }
 
-
 /**@brief Function for handling advertising events.
  *
  * @details This function will be called for advertising events which are passed to the application.
@@ -2123,7 +2139,3 @@ int main(void)
         power_manage();
     }
 }
-
-/**
- * @}
- */
