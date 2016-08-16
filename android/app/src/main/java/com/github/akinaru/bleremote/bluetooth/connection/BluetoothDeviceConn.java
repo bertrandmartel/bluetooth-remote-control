@@ -1,20 +1,25 @@
-/****************************************************************************
- * This file is part of Bluetooth LE Analyzer.                              *
- * <p/>                                                                     *
- * Copyright (C) 2016  Bertrand Martel                                      *
- * <p/>                                                                     *
- * Foobar is free software: you can redistribute it and/or modify           *
- * it under the terms of the GNU General Public License as published by     *
- * the Free Software Foundation, either version 3 of the License, or        *
- * (at your option) any later version.                                      *
- * <p/>                                                                     *
- * Foobar is distributed in the hope that it will be useful,                *
- * but WITHOUT ANY WARRANTY; without even the implied warranty of           *
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
- * GNU General Public License for more details.                             *
- * <p/>                                                                     *
- * You should have received a copy of the GNU General Public License        *
- * along with Foobar.  If not, see <http://www.gnu.org/licenses/>.          *
+/********************************************************************************
+ * The MIT License (MIT)                                                        *
+ * <p/>                                                                         *
+ * Copyright (c) 2016 Bertrand Martel                                           *
+ * <p/>                                                                         *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy *
+ * of this software and associated documentation files (the "Software"), to deal*
+ * in the Software without restriction, including without limitation the rights *
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell    *
+ * copies of the Software, and to permit persons to whom the Software is        *
+ * furnished to do so, subject to the following conditions:                     *
+ * <p/>                                                                         *
+ * The above copyright notice and this permission notice shall be included in   *
+ * all copies or substantial portions of the Software.                          *
+ * <p/>                                                                         *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR   *
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,     *
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE  *
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER       *
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,*
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN    *
+ * THE SOFTWARE.                                                                *
  */
 package com.github.akinaru.bleremote.bluetooth.connection;
 
@@ -92,13 +97,13 @@ public class BluetoothDeviceConn implements IBluetoothDeviceConn {
 
                 if (newState == BluetoothProfile.STATE_CONNECTED) {
 
-                    Log.i(TAG, "Connected to GATT server.");
-                    Log.i(TAG, "Attempting to start service discovery:" + gatt.discoverServices());
+                    Log.v(TAG, "Connected to GATT server.");
+                    Log.v(TAG, "Attempting to start service discovery:" + gatt.discoverServices());
 
                 } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
 
                     connected = false;
-                    Log.i(TAG, "Disconnected from GATT server.");
+                    Log.v(TAG, "Disconnected from GATT server.");
 
                     try {
                         JSONObject object = new JSONObject();
@@ -120,7 +125,7 @@ public class BluetoothDeviceConn implements IBluetoothDeviceConn {
                     }
 
                     if (BluetoothDeviceConn.this.gatt != null) {
-                        Log.i(TAG, "connection close clean");
+                        Log.v(TAG, "connection close clean");
                         BluetoothDeviceConn.this.gatt.close();
                     }
                 }
@@ -184,7 +189,7 @@ public class BluetoothDeviceConn implements IBluetoothDeviceConn {
                                              int status) {
                 manager.getEventManager().set();
                 if (device != null) {
-                    Log.i(TAG, "onCharacteristicRead");
+                    Log.v(TAG, "onCharacteristicRead");
                     device.notifyCharacteristicReadReceived(characteristic);
                 }
             }
@@ -200,7 +205,7 @@ public class BluetoothDeviceConn implements IBluetoothDeviceConn {
                                                 BluetoothGattCharacteristic characteristic) {
                 manager.getEventManager().set();
                 if (device != null) {
-                    Log.i(TAG, "onCharacteristicChanged");
+                    Log.v(TAG, "onCharacteristicChanged");
                     device.notifyCharacteristicChangeReceived(characteristic);
                 }
             }

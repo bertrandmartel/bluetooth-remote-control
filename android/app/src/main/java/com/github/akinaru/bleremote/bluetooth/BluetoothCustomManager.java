@@ -1,20 +1,25 @@
-/****************************************************************************
- * This file is part of Bluetooth LE Analyzer.                              *
- * <p/>                                                                     *
- * Copyright (C) 2016  Bertrand Martel                                      *
- * <p/>                                                                     *
- * Foobar is free software: you can redistribute it and/or modify           *
- * it under the terms of the GNU General Public License as published by     *
- * the Free Software Foundation, either version 3 of the License, or        *
- * (at your option) any later version.                                      *
- * <p/>                                                                     *
- * Foobar is distributed in the hope that it will be useful,                *
- * but WITHOUT ANY WARRANTY; without even the implied warranty of           *
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
- * GNU General Public License for more details.                             *
- * <p/>                                                                     *
- * You should have received a copy of the GNU General Public License        *
- * along with Foobar.  If not, see <http://www.gnu.org/licenses/>.          *
+/********************************************************************************
+ * The MIT License (MIT)                                                        *
+ * <p/>                                                                         *
+ * Copyright (c) 2016 Bertrand Martel                                           *
+ * <p/>                                                                         *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy *
+ * of this software and associated documentation files (the "Software"), to deal*
+ * in the Software without restriction, including without limitation the rights *
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell    *
+ * copies of the Software, and to permit persons to whom the Software is        *
+ * furnished to do so, subject to the following conditions:                     *
+ * <p/>                                                                         *
+ * The above copyright notice and this permission notice shall be included in   *
+ * all copies or substantial portions of the Software.                          *
+ * <p/>                                                                         *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR   *
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,     *
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE  *
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER       *
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,*
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN    *
+ * THE SOFTWARE.                                                                *
  */
 package com.github.akinaru.bleremote.bluetooth;
 
@@ -162,7 +167,7 @@ public class BluetoothCustomManager implements IBluetoothCustomManager {
 
         if (!scanningList.containsKey(device.getAddress())) {
 
-            Log.i(TAG, "found a new Bluetooth device : " + device.getName() + " : " + device.getAddress());
+            Log.v(TAG, "found a new Bluetooth device : " + device.getName() + " : " + device.getAddress());
 
             scanningList.put(device.getAddress(), device);
 
@@ -242,7 +247,7 @@ public class BluetoothCustomManager implements IBluetoothCustomManager {
 
         if (alreadyInList) {
 
-            Log.i(TAG, "reusing same connection");
+            Log.v(TAG, "reusing same connection");
 
             BluetoothDeviceConn conn = (BluetoothDeviceConn) bluetoothConnectionList.get(address);
 
@@ -254,7 +259,7 @@ public class BluetoothCustomManager implements IBluetoothCustomManager {
 
             bluetoothConnectionList.put(address, conn);
 
-            Log.i(TAG, "new connection");
+            Log.v(TAG, "new connection");
             //connect to gatt server on the device
             conn.setGatt(device.connectGatt(context, false, conn.getGattCallback()));
         }
@@ -469,7 +474,7 @@ public class BluetoothCustomManager implements IBluetoothCustomManager {
         if (bluetoothConnectionList.containsKey(deviceAddress)) {
 
             if (bluetoothConnectionList.get(deviceAddress).getBluetoothGatt() != null) {
-                Log.i(TAG, "disconnect device");
+                Log.v(TAG, "disconnect device");
                 bluetoothConnectionList.get(deviceAddress).getBluetoothGatt().disconnect();
 
                 if (!waitingForDisconnectionList.containsKey(deviceAddress)) {
@@ -477,7 +482,7 @@ public class BluetoothCustomManager implements IBluetoothCustomManager {
                     ScheduledFuture<?> task = executor.schedule(new Runnable() {
                         @Override
                         public void run() {
-                            Log.i(TAG, "connection forced close");
+                            Log.v(TAG, "connection forced close");
                             bluetoothConnectionList.get(deviceAddress).getBluetoothGatt().close();
                             waitingForDisconnectionList.remove(deviceAddress);
                         }

@@ -1,20 +1,25 @@
-/****************************************************************************
- * This file is part of Bluetooth LE Analyzer.                              *
- * <p/>                                                                     *
- * Copyright (C) 2016  Bertrand Martel                                      *
- * <p/>                                                                     *
- * Foobar is free software: you can redistribute it and/or modify           *
- * it under the terms of the GNU General Public License as published by     *
- * the Free Software Foundation, either version 3 of the License, or        *
- * (at your option) any later version.                                      *
- * <p/>                                                                     *
- * Foobar is distributed in the hope that it will be useful,                *
- * but WITHOUT ANY WARRANTY; without even the implied warranty of           *
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
- * GNU General Public License for more details.                             *
- * <p/>                                                                     *
- * You should have received a copy of the GNU General Public License        *
- * along with Foobar.  If not, see <http://www.gnu.org/licenses/>.          *
+/********************************************************************************
+ * The MIT License (MIT)                                                        *
+ * <p/>                                                                         *
+ * Copyright (c) 2016 Bertrand Martel                                           *
+ * <p/>                                                                         *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy *
+ * of this software and associated documentation files (the "Software"), to deal*
+ * in the Software without restriction, including without limitation the rights *
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell    *
+ * copies of the Software, and to permit persons to whom the Software is        *
+ * furnished to do so, subject to the following conditions:                     *
+ * <p/>                                                                         *
+ * The above copyright notice and this permission notice shall be included in   *
+ * all copies or substantial portions of the Software.                          *
+ * <p/>                                                                         *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR   *
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,     *
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE  *
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER       *
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,*
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN    *
+ * THE SOFTWARE.                                                                *
  */
 package com.github.akinaru.bleremote.bluetooth.device;
 
@@ -28,11 +33,8 @@ import com.github.akinaru.bleremote.bluetooth.listener.ICharacteristicListener;
 import com.github.akinaru.bleremote.bluetooth.listener.IDeviceInitListener;
 import com.github.akinaru.bleremote.bluetooth.listener.IPushListener;
 import com.github.akinaru.bleremote.inter.IBleDisplayRemoteDevice;
-import com.github.akinaru.bleremote.inter.IButtonListener;
 import com.github.akinaru.bleremote.inter.IDirectionPadListener;
 import com.github.akinaru.bleremote.inter.IProgressListener;
-import com.github.akinaru.bleremote.model.Button;
-import com.github.akinaru.bleremote.model.ButtonState;
 import com.github.akinaru.bleremote.model.DpadState;
 import com.github.akinaru.bleremote.model.TransmitState;
 
@@ -53,10 +55,6 @@ public class BleDisplayDevice extends BluetoothDeviceAbstr implements IBleDispla
     private String TAG = BleDisplayDevice.this.getClass().getName();
 
     private final static String SERVICE_BUTTON = "00001523-1212-efde-1523-785feabcd123";
-    private final static String BUTTON1 = "00001601-1212-efde-1523-785feabcd123";
-    private final static String BUTTON2 = "00001602-1212-efde-1523-785feabcd123";
-    private final static String BUTTON3 = "00001603-1212-efde-1523-785feabcd123";
-    private final static String BUTTON4 = "00001604-1212-efde-1523-785feabcd123";
     private final static String DPAD = "00001605-1212-efde-1523-785feabcd123";
 
     private final static String LED = "00001701-1212-efde-1523-785feabcd123";
@@ -65,8 +63,6 @@ public class BleDisplayDevice extends BluetoothDeviceAbstr implements IBleDispla
     private final static String TRANSMIT_STATUS = "00001803-1212-efde-1523-785feabcd123";
 
     private ArrayList<IDeviceInitListener> initListenerList = new ArrayList<>();
-
-    private ArrayList<IButtonListener> buttonListeners = new ArrayList<>();
 
     private ArrayList<IDirectionPadListener> dpadListeners = new ArrayList<>();
 
@@ -112,8 +108,6 @@ public class BleDisplayDevice extends BluetoothDeviceAbstr implements IBleDispla
             @Override
             public void onCharacteristicChangeReceived(BluetoothGattCharacteristic charac) {
 
-                Log.i(TAG, "receive something : " + charac.getUuid().toString() + " " + charac.getValue().length + " " + charac.getValue()[0]);
-
                 if (charac.getUuid().toString().equals(TRANSMIT_STATUS)) {
 
                     if (charac.getValue().length > 0) {
@@ -124,7 +118,7 @@ public class BleDisplayDevice extends BluetoothDeviceAbstr implements IBleDispla
 
                             case TRANSMIT_OK:
                                 if (sendIndex != sendingNum) {
-                                    Log.i(TAG, "received TRANSMIT_OK sending next batch of 128 frames");
+                                    Log.v(TAG, "received TRANSMIT_OK sending next batch of 128 frames");
 
                                     threadPool.execute(new Runnable() {
                                         @Override
@@ -137,7 +131,7 @@ public class BleDisplayDevice extends BluetoothDeviceAbstr implements IBleDispla
 
                                                 @Override
                                                 public void onPushSuccess() {
-                                                    Log.i(TAG, "set bitmap length successfull");
+                                                    Log.v(TAG, "set bitmap length successfull");
                                                     frameNumToSend = 128;
                                                     sendBitmapSequence();
                                                 }
@@ -145,11 +139,11 @@ public class BleDisplayDevice extends BluetoothDeviceAbstr implements IBleDispla
                                         }
                                     });
                                 } else {
-                                    Log.i(TAG, "sending is over. Waiting for complete");
+                                    Log.v(TAG, "sending is over. Waiting for complete");
                                 }
                                 break;
                             case TRANSMIT_COMPLETE:
-                                Log.i(TAG, "received TRANSMIT_COMPLETE");
+                                Log.v(TAG, "received TRANSMIT_COMPLETE");
                                 if (progressListener != null) {
                                     progressListener.onComplete();
                                 }
@@ -159,42 +153,17 @@ public class BleDisplayDevice extends BluetoothDeviceAbstr implements IBleDispla
                         }
                     }
                 } else {
-                    Button button = Button.NONE;
                     DpadState dpad = DpadState.NONE;
 
                     switch (charac.getUuid().toString()) {
-                        case BUTTON1:
-                            button = Button.BUTTON1;
-                            break;
-                        case BUTTON2:
-                            button = Button.BUTTON2;
-                            break;
-                        case BUTTON3:
-                            button = Button.BUTTON3;
-                            break;
-                        case BUTTON4:
-                            button = Button.BUTTON4;
-                            break;
                         case DPAD:
                             dpad = DpadState.getDpad(charac.getValue()[0]);
                             break;
                     }
-                    if (button != Button.NONE) {
-                        ButtonState state = ButtonState.RELEASED;
 
-                        if (charac.getValue().length > 0 && charac.getValue()[0] == 0x01) {
-                            state = ButtonState.PRESSED;
-                        }
-                        for (int i = 0; i < buttonListeners.size(); i++) {
-                            if (buttonListeners.get(i) != null) {
-                                buttonListeners.get(i).onButtonStateChange(button, state);
-                            }
-                        }
-                    } else {
-                        for (int i = 0; i < dpadListeners.size(); i++) {
-                            if (dpadListeners.get(i) != null) {
-                                dpadListeners.get(i).onDPadStateChanged(dpad);
-                            }
+                    for (int i = 0; i < dpadListeners.size(); i++) {
+                        if (dpadListeners.get(i) != null) {
+                            dpadListeners.get(i).onDPadStateChanged(dpad);
                         }
                     }
                 }
@@ -210,19 +179,7 @@ public class BleDisplayDevice extends BluetoothDeviceAbstr implements IBleDispla
     @Override
     public void init() {
 
-        Log.i(TAG, "initializing Ble Display Service");
-
-        conn.enableDisableNotification(UUID.fromString(SERVICE_BUTTON), UUID.fromString(BUTTON1), true);
-        conn.enableGattNotifications(SERVICE_BUTTON, BUTTON1);
-
-        conn.enableDisableNotification(UUID.fromString(SERVICE_BUTTON), UUID.fromString(BUTTON2), true);
-        conn.enableGattNotifications(SERVICE_BUTTON, BUTTON2);
-
-        conn.enableDisableNotification(UUID.fromString(SERVICE_BUTTON), UUID.fromString(BUTTON3), true);
-        conn.enableGattNotifications(SERVICE_BUTTON, BUTTON3);
-
-        conn.enableDisableNotification(UUID.fromString(SERVICE_BUTTON), UUID.fromString(BUTTON4), true);
-        conn.enableGattNotifications(SERVICE_BUTTON, BUTTON4);
+        Log.v(TAG, "initializing Ble Display Service");
 
         conn.enableDisableNotification(UUID.fromString(SERVICE_BUTTON), UUID.fromString(DPAD), true);
         conn.enableGattNotifications(SERVICE_BUTTON, DPAD);
@@ -243,11 +200,6 @@ public class BleDisplayDevice extends BluetoothDeviceAbstr implements IBleDispla
     @Override
     public void addInitListener(IDeviceInitListener listener) {
         initListenerList.add(listener);
-    }
-
-    @Override
-    public void addButtonListener(IButtonListener listener) {
-        buttonListeners.add(listener);
     }
 
     @Override
@@ -279,31 +231,19 @@ public class BleDisplayDevice extends BluetoothDeviceAbstr implements IBleDispla
 
             if (sendIndex != sendingNum) {
 
-                //Log.i(TAG, "index : " + sendIndex + " from " + (sendIndex * SENDING_BUFFER_MAX_LENGTH) + " to " + (sendIndex * SENDING_BUFFER_MAX_LENGTH + SENDING_BUFFER_MAX_LENGTH) + " with length of " + bitmapData.length);
                 byte[] data = Arrays.copyOfRange(bitmapData, sendIndex * SENDING_BUFFER_MAX_LENGTH, sendIndex * SENDING_BUFFER_MAX_LENGTH + SENDING_BUFFER_MAX_LENGTH);
                 sendIndex++;
-                final long dateBegin = new Date().getTime();
 
                 conn.writeCharacteristic(SERVICE_BUTTON, BITMAP, data, new IPushListener() {
                     @Override
                     public void onPushFailure() {
 
                         Log.e(TAG, "error happenend during transmission. Retrying");
- /*
-                        sendIndex--;
-                        failCount++;
-                        sendBitmapSequence();
-                        */
                     }
 
                     @Override
                     public void onPushSuccess() {
-                        /*
-                        long dateEnd = new Date().getTime();
-                        float timeSpan = (dateEnd - dateBegin) / 1000f;
-                        float speed = (SENDING_BUFFER_MAX_LENGTH * 8) / timeSpan;
-                        Log.i(TAG, "current speed : " + speed + "bps");
-                        */
+
                     }
                 }, true);
 
@@ -311,7 +251,7 @@ public class BleDisplayDevice extends BluetoothDeviceAbstr implements IBleDispla
                     progressListener.onProgress((sendIndex * 100) / sendingNum);
                 }
 
-                Log.i(TAG, "sending... : " + sendIndex + "/" + sendingNum + " : " +
+                Log.v(TAG, "sending... : " + sendIndex + "/" + sendingNum + " : " +
                         (data[0] & 0xFF) + ";" +
                         (data[1] & 0xFF) + ";" +
                         (data[2] & 0xFF) + ";" +
@@ -340,32 +280,25 @@ public class BleDisplayDevice extends BluetoothDeviceAbstr implements IBleDispla
                 if (remain) {
 
                     int remainNum = bitmapData.length % SENDING_BUFFER_MAX_LENGTH;
-                    //Log.i(TAG, "index : " + sendingNum + " from " + (sendingNum * SENDING_BUFFER_MAX_LENGTH) + " to " + (sendingNum * SENDING_BUFFER_MAX_LENGTH + remainNum) + " with length of " + bitmapData.length);
+
                     byte[] data = Arrays.copyOfRange(bitmapData, sendingNum * SENDING_BUFFER_MAX_LENGTH, sendingNum * SENDING_BUFFER_MAX_LENGTH + remainNum);
 
-                    Log.i(TAG, "sending : " + data.length);
+                    Log.v(TAG, "sending : " + data.length);
 
                     conn.writeCharacteristic(SERVICE_BUTTON, BITMAP, data, new IPushListener() {
                         @Override
                         public void onPushFailure() {
-                            /*
-                            Log.e(TAG, "error happenend during transmission. Retrying");
-                            failCount++;
-                            sendBitmapSequence();
-                            */
+
                         }
 
                         @Override
                         public void onPushSuccess() {
-                            /*
-                            Log.i(TAG, "completly finished in " + (new Date().getTime() - dateProcessBegin) + "ms - fail : " + failCount + " packet count : " + sendingNum);
-                            clearBimapInfo();
-                            */
+
                         }
                     }, true);
 
-                    Log.i(TAG, "frameNumToSend : " + frameNumToSend);
-                    Log.i(TAG, "completly finished in " + (new Date().getTime() - dateProcessBegin) + "ms - fail : " + failCount + " packet count : " + sendingNum);
+                    Log.v(TAG, "frameNumToSend : " + frameNumToSend);
+                    Log.v(TAG, "completly finished in " + (new Date().getTime() - dateProcessBegin) + "ms - fail : " + failCount + " packet count : " + sendingNum);
 
                     if (progressListener != null) {
                         progressListener.onFinishUpload();
@@ -373,12 +306,12 @@ public class BleDisplayDevice extends BluetoothDeviceAbstr implements IBleDispla
                 }
             }
         } else {
-            Log.i(TAG, "stop processing bitmap");
+            Log.v(TAG, "stop processing bitmap");
         }
     }
 
     private void sendBitmap(final byte[] bitmapData) {
-        Log.i(TAG, "send bitmap with length : " + bitmapData.length);
+        Log.v(TAG, "send bitmap with length : " + bitmapData.length);
 
         sendingNum = bitmapData.length / SENDING_BUFFER_MAX_LENGTH;
         remain = false;
@@ -412,7 +345,7 @@ public class BleDisplayDevice extends BluetoothDeviceAbstr implements IBleDispla
 
                     @Override
                     public void onPushSuccess() {
-                        Log.i(TAG, "set bitmap length successfull");
+                        Log.v(TAG, "set bitmap length successfull");
 
                     }
                 }, true);
@@ -444,6 +377,7 @@ public class BleDisplayDevice extends BluetoothDeviceAbstr implements IBleDispla
     @Override
     public void cancelBitmap() {
         stopUpload = true;
+        mUploading = false;
         conn.writeCharacteristic(SERVICE_BUTTON, TRANSMIT_STATUS, new byte[]{(byte) TransmitState.TRANSMIT_CANCEL.ordinal()}, new IPushListener() {
             @Override
             public void onPushFailure() {

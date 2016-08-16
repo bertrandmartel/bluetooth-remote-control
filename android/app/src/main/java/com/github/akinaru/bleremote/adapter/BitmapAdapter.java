@@ -1,3 +1,27 @@
+/********************************************************************************
+ * The MIT License (MIT)                                                        *
+ * <p/>                                                                         *
+ * Copyright (c) 2016 Bertrand Martel                                           *
+ * <p/>                                                                         *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy *
+ * of this software and associated documentation files (the "Software"), to deal*
+ * in the Software without restriction, including without limitation the rights *
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell    *
+ * copies of the Software, and to permit persons to whom the Software is        *
+ * furnished to do so, subject to the following conditions:                     *
+ * <p/>                                                                         *
+ * The above copyright notice and this permission notice shall be included in   *
+ * all copies or substantial portions of the Software.                          *
+ * <p/>                                                                         *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR   *
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,     *
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE  *
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER       *
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,*
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN    *
+ * THE SOFTWARE.                                                                *
+ */
+
 package com.github.akinaru.bleremote.adapter;
 
 import android.content.Context;
@@ -11,10 +35,12 @@ import com.github.akinaru.bleremote.R;
 import com.github.akinaru.bleremote.inter.IViewHolderClickListener;
 import com.github.akinaru.bleremote.inter.IViewHolderLongClickListener;
 import com.github.akinaru.bleremote.model.BitmapObj;
-import com.github.akinaru.bleremote.utils.MediaStoreUtils;
 
 import java.util.List;
 
+/**
+ * @author Bertrand Martel
+ */
 public class BitmapAdapter extends RecyclerView.Adapter<BitmapAdapter.ViewHolder> {
 
     private List<BitmapObj> mBitmapList;
@@ -23,46 +49,27 @@ public class BitmapAdapter extends RecyclerView.Adapter<BitmapAdapter.ViewHolder
 
     private IViewHolderLongClickListener mLongClickListener;
 
-    private Context mContext;
-
-    // Provide a suitable constructor (depends on the kind of dataset)
     public BitmapAdapter(Context context, List<BitmapObj> bitmapList, IViewHolderClickListener listener, IViewHolderLongClickListener longClickListener) {
-        mContext = context;
         mBitmapList = bitmapList;
         this.mListener = listener;
         this.mLongClickListener = longClickListener;
     }
 
-    // Create new views (invoked by the layout manager)
     @Override
     public BitmapAdapter.ViewHolder onCreateViewHolder(ViewGroup parent,
                                                        int viewType) {
-        // create a new view
         View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.bitmap_card, parent, false);
-        // set the view's size, margins, paddings and layout parameters
-
         ViewHolder vh = new ViewHolder(v, mListener, mLongClickListener);
         return vh;
     }
 
-    // Replace the contents of a view (invoked by the layout manager)
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
         BitmapObj item = mBitmapList.get(position);
         holder.bitmapObj = item;
         holder.bitmap.setImageBitmap(item.getBitmap());
-        /*
-        if (item.getRessourceId() == R.drawable.ic_control_point) {
-            holder.bitmap.setPadding(0, 0, 0, 0);
-            holder.bitmap.setScaleType(ImageView.ScaleType.CENTER);
-        } else {
-            holder.bitmap.setPadding(10, 0, 0, 0);
-            holder.bitmap.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        }
-        */
     }
 
-    // Return the size of your dataset (invoked by the layout manager)
     @Override
     public int getItemCount() {
         return mBitmapList.size();

@@ -26,7 +26,7 @@
     <string name="menu_item_about">About</string>
     <string name="menu_item_open_soçurce_components">Open Source components</string>
     <string name="menu_item_report_bugs">Report Bugs</string>
-    <string name="menu_item_disconnect_device">disconnect</string>
+    <string name="menu_item_disconnect_device">reconnect</string>
     <string name="toolbar_add_image">add image</string>
     <string name="toolbar_delete_image">delete image</string>
     <string name="description_size">size uncompressed</string>
@@ -34,4 +34,7 @@
     <string name="description_rate">compression rate</string>
     <string name="upload_time">upload time</string>
     <string name="unpack_time">device unpack time</string>
+    <string name="dialog_connecting">Connecting to device ...</string>
+    <string name="toast_device_connected">device connected</string>
+    <string name="toast_fail_led">fail to set led state</string>
 </resources>
