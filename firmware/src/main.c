@@ -1383,6 +1383,13 @@ static void dpad_timeout_handler(void * p_context) {
             }
             }
         }
+        uint16_t err_code = ble_displays_on_button_change(&m_dis, button_state, &m_dis.dpad_handles);
+        if (err_code != NRF_SUCCESS &&
+                err_code != BLE_ERROR_INVALID_CONN_HANDLE &&
+                err_code != NRF_ERROR_INVALID_STATE)
+        {
+            APP_ERROR_CHECK(err_code);
+        }
     }
 }
 
