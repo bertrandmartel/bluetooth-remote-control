@@ -125,6 +125,11 @@ cd android
 * fastlz compression library : https://github.com/ariya/FastLZ
 * appcompat-v7, design & recyclerview-v7
 
+### External links
+
+* USB HID keycode : http://www.freebsddiary.org/APC/usb_hid_usages.php
+* Android HID keycode/keyevent mapping : https://source.android.com/devices/input/keyboard-devices.html
+
 ## License
 
 The MIT License (MIT) Copyright (c) 2016 Bertrand Martel
