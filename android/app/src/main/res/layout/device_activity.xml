@@ -152,6 +152,7 @@
 
     </LinearLayout>
 
+    <!-- The navigation drawer that comes from the left --><!-- Note that `android:layout_gravity` needs to be set to 'start' -->
     <android.support.design.widget.NavigationView
         android:id="@+id/nvView"
         android:layout_width="wrap_content"
@@ -159,6 +160,7 @@
         android:layout_gravity="start"
         android:layout_marginTop="@dimen/abc_action_bar_default_height_material"
         android:background="@android:color/white"
+        app:headerLayout="@layout/nav_header_main"
         app:itemTextColor="#000000"
         app:menu="@menu/drawer_view" />
 

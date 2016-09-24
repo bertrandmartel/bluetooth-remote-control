@@ -37,4 +37,5 @@
     <string name="dialog_connecting">Connecting to device ...</string>
     <string name="toast_device_connected">device connected</string>
     <string name="toast_fail_led">fail to set led state</string>
+    <string name="dialog_ok">Ok</string>
 </resources>

@@ -24,6 +24,7 @@
 
 package com.github.akinaru.bleremote.activity;
 
+import android.Manifest;
 import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
@@ -33,11 +34,13 @@ import android.content.ContextWrapper;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -74,13 +77,11 @@ import com.github.akinaru.bleremote.service.BleDisplayRemoteService;
 import com.github.akinaru.bleremote.utils.RandomGen;
 
 import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -134,6 +135,7 @@ public class DeviceActivity extends BaseActivity {
     private Timer mTimer;
     private boolean mShouldReconnect = false;
     private Dialog mProgressDialog;
+    private final static int REQUEST_PERMISSION_COARSE_LOCATION = 1;
 
     protected Bitmap flip(Bitmap d) {
         Matrix m = new Matrix();
@@ -607,24 +609,55 @@ public class DeviceActivity extends BaseActivity {
         //register bluetooth event broadcast receiver
         registerReceiver(mBluetoothReceiver, makeGattUpdateIntentFilter());
 
-        //bind to service
-        if (mBluetoothAdapter.isEnabled()) {
-            Intent intent = new Intent(this, BleDisplayRemoteService.class);
-            mBound = bindService(intent, mServiceConnection, BIND_AUTO_CREATE);
+        if (Build.VERSION.SDK_INT >= 23) {
+            if (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, REQUEST_PERMISSION_COARSE_LOCATION);
+                return;
+            } else {
+                bindService();
+            }
+        } else {
+            bindService();
         }
     }
 
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case REQUEST_PERMISSION_COARSE_LOCATION: {
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    bindService();
+                } else {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(DeviceActivity.this, "permission coarse location required for ble scan", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                }
+            }
+        }
+    }
+
+    private void bindService() {
+        Intent intent = new Intent(this, BleDisplayRemoteService.class);
+        startService(intent);
+        mBound = bindService(intent, mServiceConnection, BIND_AUTO_CREATE);
+    }
 
     @Override
     protected void onResume() {
         super.onResume();
-        if (!mExitOnBrowse) {
+
+        if (!mExitOnBrowse && mBound) {
             createProgressConnect();
             if (mService != null) {
                 mService.clearScanningList();
                 triggerNewScan();
             }
         }
+
         mExitOnBrowse = false;
         mShouldReconnect = true;
     }
@@ -686,18 +719,7 @@ public class DeviceActivity extends BaseActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 
-        if (requestCode == REQUEST_ENABLE_BT) {
-
-            if (mBluetoothAdapter.isEnabled()) {
-                Intent intent = new Intent(this, BleDisplayRemoteService.class);
-                // bind the service to current activity and create it if it didnt exist before
-                startService(intent);
-                mBound = bindService(intent, mServiceConnection, BIND_AUTO_CREATE);
-
-            } else {
-                Toast.makeText(this, getResources().getString(R.string.toast_bluetooth_disabled), Toast.LENGTH_SHORT).show();
-            }
-        } else if ((requestCode == REQUEST_PICTURE) && (resultCode == RESULT_OK)) {
+        if ((requestCode == REQUEST_PICTURE) && (resultCode == RESULT_OK)) {
 
             mSavedImage = new RandomGen(20).nextString();
 
