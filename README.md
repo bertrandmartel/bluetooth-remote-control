@@ -2,7 +2,7 @@
 
 https://akinaru.github.io/bluetooth-remote-control
 
-[![Build Status](https://drone.io/github.com/akinaru/bluetooth-remote-control/status.png)](https://drone.io/github.com/akinaru/bluetooth-remote-control/latest)
+[![Build Status](https://travis-ci.org/akinaru/bluetooth-remote-control.svg?branch=master)](https://travis-ci.org/akinaru/bluetooth-remote-control)
 [![License](http://img.shields.io/:license-mit-blue.svg)](LICENSE.md)
 
 [![Download Bluetooth Remote Control from Google Play](http://www.android.com/images/brand/android_app_on_play_large.png)](https://play.google.com/store/apps/details?id=com.github.akinaru.bleremote)

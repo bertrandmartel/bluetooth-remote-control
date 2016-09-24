@@ -1,0 +1,31 @@
+language: android
+
+jdk:
+  - oraclejdk8
+
+sudo: false
+
+android:
+  components:
+    - tools
+    - android-24
+    - build-tools-23.0.3
+    - extra-android-m2repository
+
+cache: false
+
+before_install:
+  - git submodule update --init --recursive
+  - git clone https://github.com/urho3d/android-ndk.git $HOME/android-ndk-root
+  - export ANDROID_NDK_HOME=$HOME/android-ndk-root
+
+install:
+  # Ensure Gradle wrapper is executable, download wrapper and show version
+  - chmod +x ./android/gradlew; ls -l android/gradlew; ./android/gradlew wrapper -v
+  # Download and show android dependencies
+  # - ./gradlew androidDependencies
+
+script:
+  - ulimit -s 1082768
+  - cd android && ./gradlew clean build connectedCheck
+  - cd .. && chmod 777 ci.sh && ./ci.sh
