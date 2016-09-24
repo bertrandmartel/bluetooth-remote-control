@@ -24,6 +24,7 @@
 package com.github.akinaru.bleremote.service;
 
 import android.app.Service;
+import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
 import android.os.Binder;

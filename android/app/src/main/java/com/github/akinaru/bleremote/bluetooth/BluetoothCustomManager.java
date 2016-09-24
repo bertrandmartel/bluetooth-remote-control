@@ -61,7 +61,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Bluetooth android API processing : contains all android bluetooth api
- * <p/>
+ * <p>
  * alternative to this is using an Android Service that you can bind to your main activity
  *
  * @author Bertrand Martel
@@ -150,11 +150,13 @@ public class BluetoothCustomManager implements IBluetoothCustomManager {
 
         mBluetoothAdapter = bluetoothManager.getAdapter();
 
+        if (!mBluetoothAdapter.isEnabled()) {
+            mBluetoothAdapter.enable();
+        }
         scanCallback = new BluetoothAdapter.LeScanCallback() {
 
             @Override
             public void onLeScan(BluetoothDevice device, int rssi, final byte[] scanRecord) {
-
                 if (device.getAddress() != null &&
                         device.getName() != null) {
                     dispatchBtDevices(device, rssi, scanRecord);
@@ -333,8 +335,7 @@ public class BluetoothCustomManager implements IBluetoothCustomManager {
                                 getListener().onPushSuccess();
                             }
                         }
-                    }
-                    else{
+                    } else {
                         try {
                             Thread.sleep(10);
                         } catch (InterruptedException e) {

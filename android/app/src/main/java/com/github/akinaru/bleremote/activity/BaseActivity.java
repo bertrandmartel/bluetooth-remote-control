@@ -91,11 +91,6 @@ public abstract class BaseActivity extends AppCompatActivity implements IRemoteA
     protected BleDisplayRemoteService mService = null;
 
     /**
-     * define if bluetooth is enabled on device
-     */
-    protected final static int REQUEST_ENABLE_BT = 1;
-
-    /**
      * activity layout ressource id
      */
     private int layoutId;
@@ -166,10 +161,6 @@ public abstract class BaseActivity extends AppCompatActivity implements IRemoteA
 
         //setup bluetooth adapter
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        if (!mBluetoothAdapter.isEnabled()) {
-            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
-        }
     }
 
     /**
@@ -184,7 +175,7 @@ public abstract class BaseActivity extends AppCompatActivity implements IRemoteA
                     @Override
                     public boolean onNavigationItemSelected(MenuItem menuItem) {
                         MenuUtils.selectDrawerItem(menuItem, mDrawer, BaseActivity.this, BaseActivity.this);
-                        return true;
+                        return false;
                     }
                 });
     }
