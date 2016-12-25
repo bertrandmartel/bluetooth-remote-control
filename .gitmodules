@@ -1,6 +1,6 @@
 [submodule "adafruit-oled-st7735-dk51"]
 	path = adafruit-oled-st7735-dk51
-	url = git://github.com/akinaru/adafruit-oled-st7735-dk51.git
+	url = git://github.com/bertrandmartel/adafruit-oled-st7735-dk51.git
 [submodule "android/app/src/main/jni/fastlz"]
 	path = android/app/src/main/jni/fastlz
 	url = git://github.com/ariya/FastLZ.git
@@ -9,4 +9,4 @@
 	url = git://github.com/ariya/FastLZ.git
 [submodule "firmware/adafruit-oled-st7735"]
 	path = firmware/adafruit-oled-st7735
-	url = git://github.com/akinaru/adafruit-oled-st7735-dk51.git
+	url = git://github.com/bertrandmartel/adafruit-oled-st7735-dk51.git
