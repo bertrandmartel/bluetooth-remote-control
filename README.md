@@ -1,12 +1,12 @@
 # Bluetooth Remote Control
 
-https://akinaru.github.io/bluetooth-remote-control
+https://bertrandmartel.github.io/bluetooth-remote-control
 
-[![Build Status](https://travis-ci.org/akinaru/bluetooth-remote-control.svg?branch=master)](https://travis-ci.org/akinaru/bluetooth-remote-control)
+[![Build Status](https://travis-ci.org/bertrandmartel/bluetooth-remote-control.svg?branch=master)](https://travis-ci.org/bertrandmartel/bluetooth-remote-control)
 [![License](http://img.shields.io/:license-mit-blue.svg)](LICENSE.md)
 
 [![Download Bluetooth Remote Control from Google Play](http://www.android.com/images/brand/android_app_on_play_large.png)](https://play.google.com/store/apps/details?id=com.github.akinaru.bleremote)
-[![Download latest debug from drone.io](https://raw.githubusercontent.com/kageiit/images-host/master/badges/drone-io-badge.png)](https://drone.io/github.com/akinaru/bluetooth-remote-control/files/android/app/build/outputs/apk/app-debug.apk)
+[![Download latest debug from drone.io](https://raw.githubusercontent.com/kageiit/images-host/master/badges/drone-io-badge.png)](https://drone.io/github.com/bertrandmartel/bluetooth-remote-control/files/android/app/build/outputs/apk/app-debug.apk)
 
 Bluetooth Low Energy remote control based on DK51 board from Nordic Semiconductor with ST7735 1.8 Oled LCD from Adafruit
 
@@ -74,7 +74,7 @@ You can't combined Mode 1 & Mode 2 simultaneously.
 ### Get source code
 
 ```
-git clone git@github.com:akinaru/bluetooth-remote-control.git
+git clone git@github.com:bertrandmartel/bluetooth-remote-control.git
 cd bluetooth-remote-control
 git submodule update --init --recursive
 ```
@@ -87,7 +87,7 @@ git submodule update --init --recursive
 
 ### Setup / Installation
 
-* follow SDK/Toolchain Installation steps section of <a href="https://gist.github.com/akinaru/a38315c5fe79ec5c8c6a9ed90b8df260#installation-steps">this tutorial</a>
+* follow SDK/Toolchain Installation steps section of <a href="https://gist.github.com/bertrandmartel/a38315c5fe79ec5c8c6a9ed90b8df260#installation-steps">this tutorial</a>
 
 * specify NRF51 SDK directory with :
 
@@ -117,7 +117,7 @@ cd android
 
 * NRF 51 SDK 11.0.0 : https://www.nordicsemi.com/eng/Products/Bluetooth-low-energy/nRF5-SDK
 * fastlz compression library : https://github.com/ariya/FastLZ
-* Integration of Adafruit OLED ST7735 1.8 display on NRF51 DK board : https://github.com/akinaru/adafruit-oled-st7735-dk51
+* Integration of Adafruit OLED ST7735 1.8 display on NRF51 DK board : https://github.com/bertrandmartel/adafruit-oled-st7735-dk51
 
 ### Android application
 
