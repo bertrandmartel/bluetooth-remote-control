@@ -1,0 +1,8 @@
+title: Bluetooth-remote-control
+description: Bluetooth Low Energy remote control based on NRF 51 DK board with an additional display capability
+google_analytics: 
+show_downloads: true
+theme: jekyll-theme-architect
+
+gems:
+  - jekyll-mentions
