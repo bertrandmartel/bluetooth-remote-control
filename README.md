@@ -6,7 +6,6 @@ https://bertrandmartel.github.io/bluetooth-remote-control
 [![License](http://img.shields.io/:license-mit-blue.svg)](LICENSE.md)
 
 [![Download Bluetooth Remote Control from Google Play](http://www.android.com/images/brand/android_app_on_play_large.png)](https://play.google.com/store/apps/details?id=com.github.akinaru.bleremote)
-[![Download latest debug from drone.io](https://raw.githubusercontent.com/kageiit/images-host/master/badges/drone-io-badge.png)](https://drone.io/github.com/bertrandmartel/bluetooth-remote-control/files/android/app/build/outputs/apk/app-debug.apk)
 
 Bluetooth Low Energy remote control based on DK51 board from Nordic Semiconductor with ST7735 1.8 Oled LCD from Adafruit
 
